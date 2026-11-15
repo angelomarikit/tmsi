@@ -43,13 +43,17 @@ export function StudentDashboardLayout() {
   }
 
   if (loading) {
-    return <p className="px-8 py-12 text-sm text-ink/60">Loading your dashboard…</p>
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[#ece8df]">
+        <p className="text-sm text-ink/60">Loading your dashboard…</p>
+      </div>
+    )
   }
 
   return (
-    <div className="flex min-h-full w-full flex-1 bg-ivory">
-      <aside className="hidden w-[240px] shrink-0 border-r border-gold/25 bg-emerald-institutional text-white shadow-lg lg:flex lg:min-h-full lg:flex-col lg:self-stretch">
-        <div className="border-b border-gold/30 px-4 py-5">
+    <div className="flex min-h-dvh bg-[#ece8df]">
+      <aside className="flex w-[220px] shrink-0 flex-col bg-emerald-institutional text-white shadow-lg lg:w-[240px]">
+        <div className="border-b border-gold/25 px-4 py-5">
           <Link to="/" className="flex items-center gap-3 rounded-lg outline-offset-2 hover:opacity-95">
             <VisualAssetImage
               assetKey="brand.logo"
@@ -67,12 +71,12 @@ export function StudentDashboardLayout() {
             </div>
           </Link>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3 py-4 pb-6">
+        <nav className="flex-1 space-y-0.5 px-2 py-3" aria-label="Student">
           {studentNavItems.map((item) =>
             item.comingSoon ? (
               <span
                 key={item.to}
-                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white/45"
+                className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-white/45"
                 title="Privilege access"
               >
                 <item.icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -88,9 +92,9 @@ export function StudentDashboardLayout() {
                 end={item.end}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    'flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-gradient-to-r from-gold/90 to-gold/60 text-ink shadow'
+                      ? 'bg-gold text-forest shadow-sm'
                       : 'text-white/90 hover:bg-white/10',
                   )
                 }
@@ -103,8 +107,8 @@ export function StudentDashboardLayout() {
         </nav>
       </aside>
 
-      <div className="flex min-h-full min-w-0 flex-1 flex-col bg-ivory">
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gold/25 bg-white px-4 py-4 sm:px-8">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gold/30 bg-cream px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <p className="font-display text-xl text-forest">Welcome, {name}</p>
             <p className="text-sm text-ink/70">
@@ -114,13 +118,13 @@ export function StudentDashboardLayout() {
           <button
             type="button"
             onClick={() => void signOut()}
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-gold/35 bg-cream px-3 py-2 text-xs font-semibold text-forest shadow-sm transition-colors hover:bg-gold/15"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-gold/30 bg-white px-3 py-2 text-xs font-semibold text-forest shadow-sm transition-colors hover:bg-gold/10"
           >
             <LogOut className="h-4 w-4" aria-hidden />
             Sign out
           </button>
         </header>
-        <main className="flex-1 px-4 py-6 sm:px-8">
+        <main className="flex-1 overflow-x-auto p-4 sm:p-6">
           {showPaymentBanner ? (
             <div className="mb-6">
               <MembershipPaymentReceiptAlert
