@@ -6,8 +6,8 @@
 
 1. Go to [vercel.com/new](https://vercel.com/new).
 2. Import your Git repository (GitHub/GitLab/Bitbucket), **or** use **Deploy without Git** and upload the `web` folder.
-3. If the repo root is `TMSI` (parent folder), set:
-   - **Root Directory:** `web`
+3. If the GitHub repo is the **`web` folder only** (this project), leave **Root Directory** empty (`.`).
+   If the repo is the parent `TMSI` folder, set **Root Directory:** `web`.
    - **Framework Preset:** Vite
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
