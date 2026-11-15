@@ -48,7 +48,7 @@ export function StudentDashboardLayout() {
 
   return (
     <div className="flex min-h-full w-full flex-1 bg-ivory">
-      <aside className="hidden w-[240px] shrink-0 flex-col self-stretch border-r border-gold/25 bg-emerald-institutional text-white shadow-lg lg:flex lg:min-h-full">
+      <aside className="hidden w-[240px] shrink-0 border-r border-gold/25 bg-emerald-institutional text-white shadow-lg lg:flex lg:min-h-full lg:flex-col lg:self-stretch">
         <div className="border-b border-gold/30 px-4 py-5">
           <Link to="/" className="flex items-center gap-3 rounded-lg outline-offset-2 hover:opacity-95">
             <VisualAssetImage
@@ -67,7 +67,7 @@ export function StudentDashboardLayout() {
             </div>
           </Link>
         </div>
-        <nav className="flex-1 space-y-0.5 px-3 py-4">
+        <nav className="flex-1 space-y-0.5 px-3 py-4 pb-6">
           {studentNavItems.map((item) =>
             item.comingSoon ? (
               <span
@@ -103,7 +103,7 @@ export function StudentDashboardLayout() {
         </nav>
       </aside>
 
-      <div className="min-w-0 flex-1">
+      <div className="flex min-h-full min-w-0 flex-1 flex-col bg-ivory">
         <header className="flex flex-wrap items-start justify-between gap-3 border-b border-gold/25 bg-white px-4 py-4 sm:px-8">
           <div className="min-w-0 flex-1">
             <p className="font-display text-xl text-forest">Welcome, {name}</p>
@@ -120,7 +120,7 @@ export function StudentDashboardLayout() {
             Sign out
           </button>
         </header>
-        <main className="px-4 py-6 sm:px-8">
+        <main className="flex-1 px-4 py-6 sm:px-8">
           {showPaymentBanner ? (
             <div className="mb-6">
               <MembershipPaymentReceiptAlert

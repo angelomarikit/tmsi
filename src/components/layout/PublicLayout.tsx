@@ -19,15 +19,16 @@ export function PublicLayout() {
   const { pathname } = useLocation()
   const variant = mastheadForPath(pathname)
   const footerTagline = footerByPath[pathname]
+  const isStudentDashboard = pathname.startsWith('/dashboard')
 
   return (
     <div className="flex min-h-dvh flex-col bg-ivory">
       <InstitutionalMasthead variant={variant} />
       <InstitutionalNav />
-      <main className="flex flex-1 flex-col">
+      <main className="flex min-h-0 flex-1 flex-col">
         <Outlet />
       </main>
-      <InstitutionalFooter tagline={footerTagline} />
+      {isStudentDashboard ? null : <InstitutionalFooter tagline={footerTagline} />}
     </div>
   )
 }
