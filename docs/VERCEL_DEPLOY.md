@@ -17,6 +17,7 @@
 |------|--------|
 | `VITE_SUPABASE_URL` | `https://YOUR_PROJECT.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public |
+| `VITE_PUBLIC_SITE_URL` | Your live site URL, no trailing slash (e.g. `https://tmsi-laps.vercel.app`) — **required** for social preview / Open Graph image |
 
 5. Deploy.
 
