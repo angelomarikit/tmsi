@@ -31,11 +31,17 @@ export function CoursesPage() {
       </section>
 
       <section className="mx-auto max-w-[1440px] bg-cream/40 px-4 py-10 sm:px-6">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} layout="catalog" />
-          ))}
-        </div>
+        {programs.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-gold/40 bg-white px-6 py-12 text-center text-sm text-ink/70">
+            New courses are being added. Please check back soon or contact the registrar.
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {programs.map((program) => (
+              <ProgramCard key={program.id} program={program} layout="catalog" />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="border-y border-gold/25 bg-white py-6">

@@ -12,7 +12,7 @@
 6. `006_storage_policies.sql`
 7. `007_visual_asset_slots.sql` (media_assets + cover vs material columns)
 8. `008_schema_alignment.sql` (carousel columns, staff RLS, admin stats RPC)
-9. `009_seed_baseline.sql` (programs, media slots, homepage CMS seeds)
+9. `009_seed_baseline.sql` (homepage CMS + media slots; **programs block optional** if you only use Admin → Create course)
 10. `010_ebooks_seed.sql` (`legacy_slug` unique constraint only)
 11. `011_storage_staff_upload.sql` (staff storage upload + `current_user_is_staff()`)
 12. `012_program_course_materials.sql` (multiple PDFs per course via `content_items`)
@@ -35,15 +35,23 @@
 29. `029_ebooks_reset_for_manual_upload.sql` (wipe legacy folder paths; use Admin upload only)
 30. `030_clear_ebook_catalog.sql` (delete all `ebooks` rows — start empty Admin list)
 31. `031_clear_program_material_paths.sql` (clear legacy `course_material_storage_path`; use Admin materials only)
+32. `032_student_number_enrollment_admin_queue.sql` (`STU-######` on approve; staff enrollment queue RPC with names)
+33. `033_learning_materials_rpc.sql` (`list_learning_materials_for_program` for student Continue Learning)
+34. `034_admin_list_program_materials.sql` (`admin_list_program_materials` for Edit/Manage material lists)
+35. `035_staff_upload_program_material.sql` (`staff_register_program_material` + upload diagnostics probe)
+36. `036_reset_leap_courses.sql` (`staff_reset_leap_catalog` — optional RPC wipe; requires WHERE-safe deletes)
+37. `037_one_time_clear_programs.sql` (**run once** to delete all courses — then use Admin → Create course)
 
 ## LEAP course materials (checklist)
 
 The student reader uses **`content_items`** for each program — not PC folder paths or `programs.course_material_storage_path`.
 
-1. Migrations **012**, **015**, **017**, **026**, and **031** applied.
+1. Migrations **012**, **015**, **017**, **026**, **031**, **033**, **034**, and **035** applied.
 2. Admin → **Courses** → **Manage** on a program → upload PDFs/videos to Storage (`private-documents/course-materials/{slug}/…`).
 3. Staff **Verify payment** then **Approve enrollment** on `/admin/enrollment-approvals`.
 4. Student → **Continue Learning** lists only uploaded `content_items` (empty list is normal until step 2).
+
+**Fresh start:** Run **`037_one_time_clear_programs.sql`** once in SQL Editor (or fixed **036** RPC). Then **Admin → Create course** for each program. Clear Storage `private-documents/course-materials/` manually if needed.
 
 ## Public eBook downloads (checklist)
 

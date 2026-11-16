@@ -61,6 +61,23 @@ select public.user_has_program_access(
 3. Admin: upload member files to `membership-materials/` as needed.
 4. Student: **Member downloads** shows files after approval.
 
+### Materials vs enrollment alignment (SQL)
+
+If Admin shows PDFs but the student sees none, run in Supabase SQL Editor:
+
+```sql
+select ea.program_id, p.slug, count(ci.id) as material_rows
+from enrollment_applications ea
+join programs p on p.id = ea.program_id
+left join content_items ci
+  on ci.entity_type = 'leap_program' and ci.entity_id = p.id
+where ea.status = 'approved'
+group by ea.program_id, p.slug
+order by ea.program_id;
+```
+
+`material_rows = 0` with files in Admin usually means `content_items.entity_id` is on another row with the same slug — migration **033** matches by slug; re-upload on the canonical program id if needed.
+
 ### Negative cases
 
 | Case | Expected |
@@ -75,7 +92,7 @@ select public.user_has_program_access(
 |------|--------|
 | Supabase Auth email verification | If **enabled**, students must confirm email then sign in before enrollments list and purchase modal work |
 | Outbound email for notifications | Not required; in-app only unless SMTP configured |
-| Course PDFs for reader | Admin **Manage** materials only (`content_items`); migration **031** clears legacy path placeholders |
+| Course PDFs for reader | Admin **Manage** materials only (`content_items`); migrations **031** + **033** (`list_learning_materials_for_program`) |
 | Staff roles | `user_roles` must include registrar/admin for approvals |
 | `Metrobank` payment copy | Institution settings / enroll form (not Apex dev accounts) |
 

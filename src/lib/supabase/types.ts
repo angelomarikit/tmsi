@@ -10,6 +10,7 @@ export type DbProgramRow = {
   description: string | null
   fee_php: number
   cover_asset_key: string | null
+  cover_path: string | null
   carousel_cover_path: string | null
   course_material_storage_path: string | null
   featured_in_carousel: boolean

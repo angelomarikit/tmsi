@@ -28,15 +28,15 @@ export async function fetchMyEnrolledPrograms(): Promise<EnrolledProgram[]> {
 
 export async function fetchLearningMaterials(programId: string): Promise<LearningMaterial[]> {
   const supabase = getSupabaseClient()
-  if (!supabase) return []
-  const { data, error } = await supabase
-    .from('content_items')
-    .select('id, label, file_path, status')
-    .eq('entity_type', 'leap_program')
-    .eq('entity_id', programId)
-    .in('status', ['published', 'uploaded'])
-    .order('created_at', { ascending: true })
-  if (error) return []
+  if (!supabase) throw new Error('Supabase is not configured')
+  const { data, error } = await supabase.rpc('list_learning_materials_for_program', {
+    p_program_id: programId,
+  })
+  if (error) {
+    throw new Error(
+      `${error.message} — confirm migration 033 (list_learning_materials_for_program) is applied.`,
+    )
+  }
   return (data ?? []) as LearningMaterial[]
 }
 

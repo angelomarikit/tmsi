@@ -2,7 +2,7 @@ import { EnrollmentPaymentUploadForm } from '@/components/enrollment/EnrollmentP
 import { ProgramCoverFrame } from '@/components/institutional/ProgramCoverFrame'
 import { CourseCoverPlaceholder } from '@/components/institutional/CourseCoverPlaceholder'
 import { VisualAssetImage } from '@/components/institutional/VisualAssetImage'
-import { useLeapPrograms, useMediaOverrides } from '@/contexts/ContentContext'
+import { useLeapPrograms } from '@/contexts/ContentContext'
 import { getVisualAsset, type VisualAssetKey } from '@/data/visual-assets'
 import type { StudentEnrollmentCard } from '@/lib/supabase/student-dashboard'
 import { formatPhp } from '@/lib/utils'
@@ -24,10 +24,17 @@ export function CourseEnrollmentCard({ row, feePhp: feeOverride, onPaymentUpload
   const program = programs.find((p) => p.slug === row.slug)
   const feePhp = feeOverride ?? program?.feePhp ?? 0
 
-  const media = useMediaOverrides()
   const coverKey = (row.cover_asset_key ?? 'course.dms') as VisualAssetKey
   const asset = getVisualAsset(coverKey)
-  const coverSrc = media[coverKey] ?? asset.publicPath
+  const carouselPath = program?.carouselCoverPath?.trim()
+  const coverFallback = (
+    <VisualAssetImage
+      assetKey={coverKey}
+      className="h-40 w-full"
+      imgClassName="!object-cover"
+      fallback={<CourseCoverPlaceholder assetKey={coverKey} className="h-full w-full" />}
+    />
+  )
   const granted = accessGranted(row)
   const pending =
     !granted &&
@@ -44,20 +51,17 @@ export function CourseEnrollmentCard({ row, feePhp: feeOverride, onPaymentUpload
 
   return (
     <article className="overflow-hidden rounded-2xl border border-gold/35 bg-white shadow-md">
-      <ProgramCoverFrame
-        src={coverSrc}
-        alt={asset.alt}
-        className="h-40 w-full"
-        roundedTop
-        fallback={
-          <VisualAssetImage
-            assetKey={coverKey}
-            className="h-40 w-full"
-            imgClassName="!object-cover"
-            fallback={<CourseCoverPlaceholder assetKey={coverKey} className="h-full w-full" />}
-          />
-        }
-      />
+      {carouselPath?.startsWith('/') ? (
+        <ProgramCoverFrame
+          src={carouselPath}
+          alt={asset.alt}
+          className="h-40 w-full"
+          roundedTop
+          fallback={coverFallback}
+        />
+      ) : (
+        <div className="h-40 w-full overflow-hidden rounded-t-[12px] bg-cream">{coverFallback}</div>
+      )}
       <div className="p-4">
         <p className="text-xs font-semibold text-gold">{row.code}</p>
         <h3 className="font-display text-lg font-semibold text-forest">{row.title}</h3>

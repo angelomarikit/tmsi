@@ -14,7 +14,11 @@ type ProgramCardProps = {
 
 export function ProgramCard({ program, layout = 'catalog' }: ProgramCardProps) {
   const mediaOverrides = useMediaOverrides()
-  const coverSrc = resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
+  const coverSrc =
+    program.coverPublicUrl?.trim() ||
+    resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
+  const coverAlt =
+    visualAssets[program.coverAssetKey]?.alt ?? `${program.title} — course cover`
 
   return (
     <article
@@ -26,7 +30,7 @@ export function ProgramCard({ program, layout = 'catalog' }: ProgramCardProps) {
       <Link to={`/courses/${program.slug}`} className="block">
         <ProgramCoverFrame
           src={coverSrc}
-          alt={visualAssets[program.coverAssetKey].alt}
+          alt={coverAlt}
           zoom={Boolean(coverSrc)}
           className="aspect-[4/3] w-full"
           roundedTop={false}

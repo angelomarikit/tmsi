@@ -1,4 +1,4 @@
-import { leapPrograms, type LeapProgram } from '@/data/programs'
+import type { LeapProgram } from '@/data/programs'
 import type { MediaPathOverrides } from '@/data/visual-assets'
 import {
   contentApiReady,
@@ -59,8 +59,8 @@ export function ContentProvider({ children }: { children: ReactNode }) {
 
     return {
       apiReady,
-      programs: programsQuery.data?.length ? programsQuery.data : leapPrograms,
-      programsFromDb: Boolean(programsQuery.data?.length),
+      programs: programsQuery.data ?? [],
+      programsFromDb: programsQuery.data != null,
       mediaOverrides: mediaQuery.data ?? {},
       mediaFromDb: Boolean(mediaQuery.data && Object.keys(mediaQuery.data).length),
       homeSections,

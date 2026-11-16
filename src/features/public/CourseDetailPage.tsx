@@ -25,14 +25,18 @@ export function CourseDetailPage() {
     )
   }
 
-  const coverSrc = resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
+  const coverSrc =
+    program.coverPublicUrl?.trim() ||
+    resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
+  const coverAlt =
+    visualAssets[program.coverAssetKey]?.alt ?? `${program.title} — course cover`
 
   return (
     <article className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <div className="overflow-hidden rounded-2xl border border-gold/35 bg-white shadow-lg">
         <ProgramCoverFrame
           src={coverSrc}
-          alt={visualAssets[program.coverAssetKey].alt}
+          alt={coverAlt}
           zoom={Boolean(coverSrc)}
           className="h-56 w-full sm:h-80 lg:h-96"
           roundedTop={false}

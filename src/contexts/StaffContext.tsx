@@ -26,7 +26,7 @@ type StaffContextValue = {
   loading: boolean
   rolesLoading: boolean
   signUp: (email: string, password: string, fullName: string) => Promise<SignUpResult>
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ isStaff: boolean }>
   signOut: () => Promise<void>
   refreshStaff: () => Promise<void>
 }
@@ -141,9 +141,26 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const supabase = getSupabaseClient()
     if (!supabase) throw new Error('Supabase is not configured')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    if (data.session) setSession(data.session)
     await refreshStaff()
+
+    const userId = data.user?.id
+    let staff = false
+    const { data: staffData, error: staffErr } = await supabase.rpc('current_user_is_staff')
+    staff = Boolean(staffData) && !staffErr
+    if (!staff && userId && staffErr) {
+      const { data: roleRows } = await supabase
+        .from('user_roles')
+        .select('roles(slug)')
+        .eq('user_id', userId)
+      staff = (roleRows ?? []).some((row) => {
+        const slug = (row.roles as { slug?: string })?.slug
+        return slug != null && STAFF_SLUGS.has(slug)
+      })
+    }
+    return { isStaff: staff }
   }, [refreshStaff])
 
   const signOut = useCallback(async () => {

@@ -1,6 +1,12 @@
+import { AdminFormFilePicker } from '@/components/admin/AdminFormFilePicker'
 import { useStaff } from '@/contexts/StaffContext'
 import { createNewCourse, slugifyCourseTitle } from '@/lib/supabase/course-admin'
-import { uploadProgramMaterials } from '@/lib/supabase/program-materials'
+import {
+  courseMaterialRejectionReason,
+  isAllowedCourseMaterial,
+  normalizeCourseMaterialFile,
+  uploadProgramMaterials,
+} from '@/lib/supabase/program-materials'
 import { Info, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -83,14 +89,26 @@ export function CourseMaterialsUploadModal({ open, onClose, onUploaded }: Props)
       })
 
       if (files.length > 0) {
-        const count = await uploadProgramMaterials(created.id, created.slug, files)
-        if (count === 0) {
-          toast.message('Course created; no supported material files were uploaded')
+        const resolved: File[] = []
+        for (const raw of files) {
+          const normalized = await normalizeCourseMaterialFile(raw)
+          const file = normalized ?? raw
+          if (isAllowedCourseMaterial(file)) {
+            resolved.push(file)
+          } else {
+            toast.error(courseMaterialRejectionReason(raw) ?? `Skipped ${raw.name}`)
+          }
+        }
+        if (resolved.length > 0) {
+          const { count } = await uploadProgramMaterials(created.id, created.slug, resolved)
+          toast.success(
+            `Course created with ${count} material file${count === 1 ? '' : 's'} — visible after enroll + approve`,
+          )
         } else {
-          toast.success(`New course created with ${count} material file${count === 1 ? '' : 's'}`)
+          toast.success('Course created — add PDFs via Manage or Edit')
         }
       } else {
-        toast.success('New course created — add materials anytime via Manage')
+        toast.success('Course created — add PDFs via Manage or Edit')
       }
 
       onUploaded()
@@ -111,9 +129,9 @@ export function CourseMaterialsUploadModal({ open, onClose, onUploaded }: Props)
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-semibold text-forest">Upload new course</h2>
+            <h2 className="font-display text-xl font-semibold text-forest">Create course</h2>
             <p className="mt-1 text-xs text-ink/70">
-              Create a new LEAP course and optionally attach learning files in one step.
+              Saves the course in the database and uploads PDFs/videos for enrolled students in one step.
             </p>
           </div>
           <button
@@ -194,15 +212,15 @@ export function CourseMaterialsUploadModal({ open, onClose, onUploaded }: Props)
             />
           </label>
 
-          <label className="block text-xs font-medium text-forest">
-            Cover image (optional, public)
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="mt-1 block w-full text-sm"
-              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
-            />
-          </label>
+          <AdminFormFilePicker
+            label="Cover image (optional, public)"
+            accept="image/jpeg,image/png,image/webp"
+            chooseLabel="Choose image"
+            value={coverFile}
+            onChange={setCoverFile}
+            disabled={busy}
+            hint="Shown on the public catalog and student My Courses."
+          />
 
           <div>
             <p className="text-xs font-medium text-forest">

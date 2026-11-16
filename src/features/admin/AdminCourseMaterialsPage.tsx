@@ -1,10 +1,12 @@
 import { StaffUploadBanner } from '@/components/admin/StaffUploadBanner'
 import { useStaff } from '@/contexts/StaffContext'
-import { getProgramBySlug } from '@/data/programs'
 import {
+  courseMaterialRejectionReason,
   deleteProgramMaterial,
   fetchProgramBySlug,
-  fetchProgramMaterials,
+  fetchProgramMaterialsAdmin,
+  isAllowedCourseMaterial,
+  normalizeCourseMaterialFile,
   uploadProgramMaterials,
 } from '@/lib/supabase/program-materials'
 import { FileStack, Trash2, Upload } from 'lucide-react'
@@ -20,8 +22,6 @@ export function AdminCourseMaterialsPage() {
   const [busy, setBusy] = useState(false)
   const queryClient = useQueryClient()
 
-  const staticFallback = slug ? getProgramBySlug(slug) : undefined
-
   const { data: program } = useQuery({
     queryKey: ['admin', 'program', slug],
     queryFn: () => (slug ? fetchProgramBySlug(slug) : Promise.resolve(null)),
@@ -29,12 +29,13 @@ export function AdminCourseMaterialsPage() {
   })
 
   const programId = program?.id ?? null
-  const programTitle = program?.title ?? staticFallback?.title ?? slug
+  const programTitle = program?.title ?? slug
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ['admin', 'program-materials', programId],
-    queryFn: () => (programId ? fetchProgramMaterials(programId) : Promise.resolve([])),
-    enabled: Boolean(programId),
+    queryFn: () =>
+      programId && slug ? fetchProgramMaterialsAdmin(programId, slug) : Promise.resolve([]),
+    enabled: Boolean(programId && slug),
   })
 
   async function onFilesSelected(e: ChangeEvent<HTMLInputElement>) {
@@ -45,13 +46,35 @@ export function AdminCourseMaterialsPage() {
       toast.error('Admin sign-in required')
       return
     }
+    const resolved: File[] = []
+    const rejected: string[] = []
+    for (const raw of Array.from(fileList)) {
+      const normalized = await normalizeCourseMaterialFile(raw)
+      const file = normalized ?? raw
+      if (isAllowedCourseMaterial(file)) {
+        resolved.push(file)
+      } else {
+        rejected.push(courseMaterialRejectionReason(raw) ?? raw.name)
+      }
+    }
+    if (resolved.length === 0) {
+      toast.error(
+        rejected.length > 0
+          ? `Cannot upload: ${rejected.join('; ')}`
+          : 'No supported PDF or video files selected',
+      )
+      return
+    }
+    if (rejected.length > 0) {
+      toast.message(`Skipped ${rejected.length} unsupported file(s)`)
+    }
     setBusy(true)
     try {
-      const count = await uploadProgramMaterials(programId, slug, Array.from(fileList))
+      const { count } = await uploadProgramMaterials(programId, slug, resolved)
       if (count === 0) {
-        toast.message('No supported files selected')
+        toast.error('Upload returned zero files — check staff role and migration 035')
       } else {
-        toast.success(`Uploaded ${count} file${count === 1 ? '' : 's'}`)
+        toast.success(`Uploaded ${count} file${count === 1 ? '' : 's'} — students see these after enrollment approval`)
       }
       void queryClient.invalidateQueries({
         queryKey: ['admin', 'program-materials', programId],
@@ -81,6 +104,14 @@ export function AdminCourseMaterialsPage() {
         Upload <strong>PDF modules</strong> or <strong>video</strong> per program. Files stay in the private
         bucket and are listed here — they are never shown as images on the public site.
       </p>
+      {programId && slug ? (
+        <p className="mt-2 font-mono text-[11px] text-ink/55">
+          Program id: {programId} · slug: {slug}
+          <span className="mt-0.5 block text-[10px] font-sans text-ink/50">
+            Student enrollments must use this same program (slug); materials follow slug after migration 033.
+          </span>
+        </p>
+      ) : null}
       <StaffUploadBanner />
 
       {!programId ? (
@@ -95,7 +126,7 @@ export function AdminCourseMaterialsPage() {
             <input
               ref={inputRef}
               type="file"
-              accept="application/pdf,.pdf,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+              accept="application/pdf,.pdf,application/x-pdf,application/vnd.adobe.pdf,video/*,.mp4,.webm,.mov,*/*"
               multiple
               className="hidden"
               onChange={onFilesSelected}

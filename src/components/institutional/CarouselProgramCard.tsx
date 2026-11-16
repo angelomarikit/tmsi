@@ -13,8 +13,10 @@ type CarouselProgramCardProps = {
 
 export function CarouselProgramCard({ program, className }: CarouselProgramCardProps) {
   const mediaOverrides = useMediaOverrides()
-  const posterSrc = resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
-  const src = program.carouselCoverPath ?? posterSrc
+  const posterSrc =
+    program.coverPublicUrl?.trim() ||
+    resolvePublicImageUrl(program.coverAssetKey, mediaOverrides)
+  const src = program.carouselCoverPath?.trim() || posterSrc
 
   return (
     <article

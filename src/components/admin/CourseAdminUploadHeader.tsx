@@ -1,4 +1,4 @@
-import { Upload } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 type Props = {
   onOpenUpload: () => void
@@ -11,8 +11,8 @@ export function CourseAdminUploadHeader({ onOpenUpload }: Props) {
       className="btn-gloss-green inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold text-white shadow-sm"
       onClick={onOpenUpload}
     >
-      <Upload className="h-4 w-4" aria-hidden />
-      Upload
+      <Plus className="h-4 w-4" aria-hidden />
+      Create course
     </button>
   )
 }

@@ -7,6 +7,7 @@ import {
   staffRejectEnrollment,
   staffRequestCorrection,
   staffVerifyPayment,
+  enrollmentApplicantDisplay,
   type AdminEnrollmentRow,
 } from '@/lib/supabase/enrollment-workflow'
 import { formatPhp } from '@/lib/utils'
@@ -38,17 +39,59 @@ export function AdminEnrollmentApprovalsPage() {
     if (match) setDetail(match)
   }, [focusId, rows])
 
+  useEffect(() => {
+    if (!detail) return
+    const fresh = rows.find((r) => r.id === detail.id)
+    if (fresh) setDetail(fresh)
+  }, [rows, detail?.id])
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return rows
-    return rows.filter(
-      (r) =>
+    return rows.filter((r) => {
+      const { name, email, studentNumber } = enrollmentApplicantDisplay(r)
+      return (
         r.reference_code?.toLowerCase().includes(q) ||
-        r.profiles?.email?.toLowerCase().includes(q) ||
-        r.profiles?.full_name?.toLowerCase().includes(q) ||
-        r.programs?.title?.toLowerCase().includes(q),
-    )
+        email.toLowerCase().includes(q) ||
+        name.toLowerCase().includes(q) ||
+        studentNumber?.toLowerCase().includes(q) ||
+        r.programs?.title?.toLowerCase().includes(q)
+      )
+    })
   }, [rows, search])
+
+  async function handleApproveRow(row: AdminEnrollmentRow) {
+    if (row.payment?.status !== 'verified') {
+      toast.error('Verify payment first (open View → Verify Payment).')
+      return
+    }
+    if (
+      !window.confirm(
+        `Approve enrollment for ${enrollmentApplicantDisplay(row).name}?`,
+      )
+    ) {
+      return
+    }
+    try {
+      await staffApproveEnrollment(row.id)
+      toast.success('Enrollment approved — student number assigned if new')
+      invalidate()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Approve failed')
+    }
+  }
+
+  async function handleDeclineRow(row: AdminEnrollmentRow) {
+    const reason = window.prompt(`Decline enrollment for ${enrollmentApplicantDisplay(row).name}? Enter reason:`)
+    if (!reason?.trim()) return
+    try {
+      await staffRejectEnrollment(row.id, reason.trim())
+      toast.success('Enrollment declined')
+      invalidate()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Decline failed')
+    }
+  }
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['admin', 'enrollment-queue'] })
@@ -127,11 +170,22 @@ export function AdminEnrollmentApprovalsPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((r) => (
+              filtered.map((r) => {
+                const student = enrollmentApplicantDisplay(r)
+                const canApprove =
+                  !['approved', 'rejected'].includes(r.status) &&
+                  r.payment?.status === 'verified'
+                const canDecline = !['rejected'].includes(r.status)
+                return (
                 <tr key={r.id} className="border-t border-gold/15">
                   <td className="px-3 py-2">
-                    <p className="font-medium text-forest">{r.profiles?.full_name ?? '—'}</p>
-                    <p className="text-xs text-ink/60">{r.profiles?.email ?? '—'}</p>
+                    <p className="font-medium text-forest">{student.name}</p>
+                    {student.studentNumber ? (
+                      <p className="text-xs font-semibold text-gold">{student.studentNumber}</p>
+                    ) : (
+                      <p className="text-xs text-ink/50">Student no. on approval</p>
+                    )}
+                    <p className="text-xs text-ink/60">{student.email}</p>
                   </td>
                   <td className="px-3 py-2">{r.programs?.title ?? '—'}</td>
                   <td className="px-3 py-2">
@@ -146,16 +200,47 @@ export function AdminEnrollmentApprovalsPage() {
                     {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-forest underline"
-                      onClick={() => setDetail(r)}
-                    >
-                      View
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-forest underline"
+                        onClick={() => setDetail(r)}
+                      >
+                        View
+                      </button>
+                      <span className="text-ink/30" aria-hidden>
+                        ·
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!canApprove}
+                        title={
+                          r.payment?.status !== 'verified'
+                            ? 'Verify payment first'
+                            : r.status === 'approved'
+                              ? 'Already approved'
+                              : undefined
+                        }
+                        className="text-xs font-semibold text-forest underline disabled:cursor-not-allowed disabled:no-underline disabled:text-ink/35"
+                        onClick={() => void handleApproveRow(r)}
+                      >
+                        Approve
+                      </button>
+                      <span className="text-ink/30" aria-hidden>
+                        ·
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!canDecline}
+                        className="text-xs font-semibold text-red-800 underline disabled:cursor-not-allowed disabled:no-underline disabled:text-ink/35"
+                        onClick={() => void handleDeclineRow(r)}
+                      >
+                        Decline
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))
+              )})
             )}
           </tbody>
         </table>
@@ -165,7 +250,8 @@ export function AdminEnrollmentApprovalsPage() {
         <EnrollmentDetailDrawer
           row={detail}
           onClose={() => setDetail(null)}
-          onChanged={() => {
+          onRefresh={invalidate}
+          onComplete={() => {
             invalidate()
             setDetail(null)
           }}
@@ -178,13 +264,18 @@ export function AdminEnrollmentApprovalsPage() {
 function EnrollmentDetailDrawer({
   row,
   onClose,
-  onChanged,
+  onRefresh,
+  onComplete,
 }: {
   row: AdminEnrollmentRow
   onClose: () => void
-  onChanged: () => void
+  onRefresh: () => void
+  onComplete: () => void
 }) {
   const payload = row.payload ?? {}
+  const student = enrollmentApplicantDisplay(row)
+  const paymentVerified = row.payment?.status === 'verified'
+  const enrollmentFinal = ['approved', 'rejected'].includes(row.status)
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
@@ -197,8 +288,13 @@ function EnrollmentDetailDrawer({
         </div>
         <div className="space-y-6 px-5 py-4 text-sm">
           <Section title="Student">
-            <p>{String(payload.fullName ?? row.profiles?.full_name ?? '—')}</p>
-            <p className="text-ink/70">{row.profiles?.email}</p>
+            <p>{student.name}</p>
+            {student.studentNumber ? (
+              <p className="font-semibold text-gold">{student.studentNumber}</p>
+            ) : (
+              <p className="text-xs text-ink/55">Student number assigned when enrollment is approved</p>
+            )}
+            <p className="text-ink/70">{student.email}</p>
             <p className="text-ink/70">{String(payload.mobile ?? '')}</p>
           </Section>
           <Section title="Course">
@@ -207,6 +303,12 @@ function EnrollmentDetailDrawer({
             <p>Fee: {row.programs ? formatPhp(row.programs.fee_php) : '—'}</p>
           </Section>
           <Section title="Payment">
+            {!paymentVerified ? (
+              <p className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-950">
+                Step 1: Click <strong>Verify Payment</strong> after reviewing the receipt. Approval is
+                blocked until payment status is verified.
+              </p>
+            ) : null}
             <p>Reference: {row.payment?.reference_number ?? '—'}</p>
             <p>Status: {row.payment?.status ?? '—'}</p>
             <p>Date: {row.payment?.payment_date ?? '—'}</p>
@@ -235,26 +337,39 @@ function EnrollmentDetailDrawer({
           <div className="flex flex-wrap gap-2 border-t border-gold/20 pt-4">
             <ActionBtn
               label="Verify Payment"
+              disabled={paymentVerified}
               onClick={async () => {
                 try {
                   await staffVerifyPayment(row.id)
-                  toast.success('Payment verified (recorded separately from enrollment)')
-                  onChanged()
+                  toast.success('Payment verified — you can now approve enrollment')
+                  onRefresh()
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed')
+                  toast.error(e instanceof Error ? e.message : 'Verify payment failed')
                 }
               }}
             />
             <ActionBtn
               label="Approve Enrollment"
+              disabled={!paymentVerified || enrollmentFinal}
+              title={
+                !paymentVerified
+                  ? 'Verify payment first'
+                  : enrollmentFinal
+                    ? 'Enrollment already finalized'
+                    : undefined
+              }
               onClick={async () => {
-                if (!window.confirm('Grant course access? Payment must already be verified.')) return
+                if (!paymentVerified) {
+                  toast.error('Verify payment first, then approve enrollment.')
+                  return
+                }
+                if (!window.confirm('Grant course access and assign student number if needed?')) return
                 try {
                   await staffApproveEnrollment(row.id)
                   toast.success('Enrollment approved — course access granted')
-                  onChanged()
+                  onComplete()
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed')
+                  toast.error(e instanceof Error ? e.message : 'Approve failed')
                 }
               }}
             />
@@ -266,9 +381,9 @@ function EnrollmentDetailDrawer({
                 try {
                   await staffRequestCorrection(row.id, msg)
                   toast.success('Correction requested')
-                  onChanged()
+                  onRefresh()
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed')
+                  toast.error(e instanceof Error ? e.message : 'Request failed')
                 }
               }}
             />
@@ -281,9 +396,9 @@ function EnrollmentDetailDrawer({
                 try {
                   await staffRejectEnrollment(row.id, reason)
                   toast.success('Application rejected')
-                  onChanged()
+                  onComplete()
                 } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed')
+                  toast.error(e instanceof Error ? e.message : 'Reject failed')
                 }
               }}
             />
@@ -307,19 +422,25 @@ function ActionBtn({
   label,
   onClick,
   variant = 'default',
+  disabled = false,
+  title,
 }: {
   label: string
   onClick: () => void
   variant?: 'default' | 'danger'
+  disabled?: boolean
+  title?: string
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      title={title}
       onClick={onClick}
       className={
         variant === 'danger'
-          ? 'rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-900'
-          : 'rounded-full border border-forest/30 bg-forest/10 px-3 py-1.5 text-xs font-semibold text-forest'
+          ? 'rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-900 disabled:cursor-not-allowed disabled:opacity-45'
+          : 'rounded-full border border-forest/30 bg-forest/10 px-3 py-1.5 text-xs font-semibold text-forest disabled:cursor-not-allowed disabled:opacity-45'
       }
     >
       {label}

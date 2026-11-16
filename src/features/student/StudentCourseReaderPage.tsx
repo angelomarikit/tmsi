@@ -32,7 +32,12 @@ export function StudentCourseReaderPage() {
 
   const enrollment = enrollments.find((e) => e.program_id === courseId)
 
-  const { data: materials = [], isLoading: materialsLoading } = useQuery({
+  const {
+    data: materials = [],
+    isLoading: materialsLoading,
+    isError: materialsError,
+    error: materialsFetchError,
+  } = useQuery({
     queryKey: ['learning', 'materials', courseId],
     queryFn: () => (courseId ? fetchLearningMaterials(courseId) : Promise.resolve([])),
     enabled: Boolean(courseId) && hasAccess === true,
@@ -87,11 +92,20 @@ export function StudentCourseReaderPage() {
           Materials
         </p>
         <ul className="mt-2 space-y-2 text-sm">
-          {materialsLoading ? (
+          {materialsError ? (
+            <li className="text-xs text-amber-950">
+              Could not load materials.{' '}
+              {materialsFetchError instanceof Error ? materialsFetchError.message : 'Try again later.'}
+            </li>
+          ) : materialsLoading ? (
             <li className="text-ink/60">Loading…</li>
           ) : materials.length === 0 ? (
             <li className="text-xs text-ink/65">
-              No learning materials are available for this course yet.
+              <p>No learning materials are available for this course yet.</p>
+              <p className="mt-2 text-[11px] text-ink/55">
+                If TMSI uploaded files, they must be attached under Admin → Courses → Manage for this
+                course slug ({enrollment?.slug ?? 'same program'}).
+              </p>
             </li>
           ) : (
             materials.map((m) => (
@@ -110,6 +124,14 @@ export function StudentCourseReaderPage() {
       </aside>
 
       <div>
+        {materialsError ? (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-medium">Could not load course materials</p>
+            <p className="mt-1 text-xs">
+              {materialsFetchError instanceof Error ? materialsFetchError.message : 'Unknown error'}
+            </p>
+          </div>
+        ) : null}
         <ul className="space-y-3">
           {materials.map((m) =>
             m.file_path ? (

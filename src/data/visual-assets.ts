@@ -175,12 +175,21 @@ export function getVisualAsset(key: VisualAssetKey) {
 
 export type MediaPathOverrides = Partial<Record<VisualAssetKey, string | null>>
 
+function isSiteRelativePublicPath(path: string | null | undefined): path is string {
+  if (path == null) return false
+  const trimmed = path.trim()
+  return trimmed.startsWith('/') && !trimmed.startsWith('//')
+}
+
 export function resolvePublicImageUrl(
   key: VisualAssetKey,
   overrides?: MediaPathOverrides,
 ): string | null {
   if (overrides && overrides[key] !== undefined) {
-    return overrides[key] ?? null
+    const override = overrides[key]
+    if (isSiteRelativePublicPath(override)) {
+      return override
+    }
   }
   return visualAssets[key].publicPath
 }

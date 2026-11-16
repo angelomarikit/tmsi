@@ -49,7 +49,7 @@ export async function fetchAdminProgramsTable() {
       'id, code, slug, title, subtitle, fee_php, publication_status, active, featured_in_carousel, sort_order, cover_asset_key',
     )
     .order('sort_order', { ascending: true })
-  if (error) return []
+  if (error) throw new Error(error.message)
   return data ?? []
 }
 

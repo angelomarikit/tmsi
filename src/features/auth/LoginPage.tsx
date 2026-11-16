@@ -1,5 +1,4 @@
 import { useStaff } from '@/contexts/StaffContext'
-import { getSupabaseClient } from '@/lib/supabase/client'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -13,12 +12,16 @@ export function LoginPage() {
   const [params] = useSearchParams()
   const next = params.get('next') ?? ''
 
-  async function resolveDestination() {
-    const supabase = getSupabaseClient()
-    if (!supabase) return '/'
-    const { data: staffUser } = await supabase.rpc('current_user_is_staff')
-    if (next && next !== '/admin') return next
-    if (staffUser) return '/admin'
+  function safeLearnerNext(path: string): string | null {
+    if (!path.startsWith('/') || path.startsWith('//')) return null
+    if (path.startsWith('/admin')) return null
+    return path
+  }
+
+  function resolveDestination(isStaff: boolean): string {
+    if (isStaff) return '/admin'
+    const learnerNext = safeLearnerNext(next)
+    if (learnerNext) return learnerNext
     return '/dashboard'
   }
 
@@ -26,9 +29,9 @@ export function LoginPage() {
     e.preventDefault()
     setBusy(true)
     try {
-      await signIn(email, password)
+      const { isStaff } = await signIn(email, password)
       toast.success('Signed in')
-      navigate(await resolveDestination())
+      navigate(resolveDestination(isStaff))
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Sign-in failed')
     } finally {
@@ -40,8 +43,8 @@ export function LoginPage() {
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="font-display text-2xl text-forest">Sign in</h1>
       <p className="mt-2 text-sm text-ink/75">
-        One account for LEAP courses and/or TMVS membership. Staff with admin roles open the admin
-        portal; everyone else goes to the learner dashboard after sign-in.
+        Learners go to the student dashboard; registrar and admin accounts always open the admin
+        portal (even if you signed out from a learner page).
       </p>
       {!configured ? (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-950">

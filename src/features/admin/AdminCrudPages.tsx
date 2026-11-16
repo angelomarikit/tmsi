@@ -1,6 +1,7 @@
 import { AdminDataTable } from '@/components/admin/AdminDataTable'
 import { CourseAdminUploadHeader } from '@/components/admin/CourseAdminUploadHeader'
 import { CourseEditModal, type CourseEditInitial } from '@/components/admin/CourseEditModal'
+import { CourseMaterialsPreviewModal } from '@/components/admin/CourseMaterialsPreviewModal'
 import { CourseMaterialsUploadModal } from '@/components/admin/CourseMaterialsUploadModal'
 import { CourseRowActions } from '@/components/admin/CourseRowActions'
 import { EnrollmentAdminActions } from '@/components/admin/EnrollmentAdminActions'
@@ -16,9 +17,9 @@ import { MembershipMaterialsUploadModal } from '@/components/admin/MembershipMat
 import { fetchMembershipMaterials } from '@/lib/supabase/membership-materials'
 import { fetchAdminTmvsMembers } from '@/lib/supabase/membership-workflow'
 import { fetchProgramMaterialCounts } from '@/lib/supabase/program-materials'
+import { CourseMaterialsAuditBanner } from '@/components/admin/CourseMaterialsAuditBanner'
 import { StaffUploadBanner } from '@/components/admin/StaffUploadBanner'
 import { AdminPaymentQrPanel } from '@/features/admin/AdminPaymentQrPanel'
-import { useLeapPrograms } from '@/contexts/ContentContext'
 import { formatPhp } from '@/lib/utils'
 import {
   fetchAdminEbooks,
@@ -181,34 +182,29 @@ export function AdminCoursesPage() {
     open: false,
     initial: null,
   })
-  const { data: rows = [], isLoading } = useAdminRows('programs-table', fetchAdminProgramsTable)
+  const [preview, setPreview] = useState<{
+    open: boolean
+    programId: string
+    slug: string
+    title: string
+  }>({ open: false, programId: '', slug: '', title: '' })
+  const {
+    data: rows = [],
+    isLoading,
+    isError: programsQueryError,
+  } = useAdminRows('programs-table', fetchAdminProgramsTable)
   const { data: materialCounts = {} } = useQuery({
     queryKey: ['admin', 'program-material-counts'],
     queryFn: fetchProgramMaterialCounts,
   })
-  const fallback = useLeapPrograms()
-  const display =
-    rows.length > 0
-      ? rows
-      : fallback.map((p) => ({
-          id: p.id,
-          code: p.code,
-          slug: p.slug,
-          title: p.title,
-          subtitle: p.subtitle,
-          fee_php: p.feePhp,
-          publication_status: 'published',
-          active: true,
-          featured_in_carousel: Boolean(p.featuredInCarousel),
-          sort_order: 0,
-          cover_asset_key: p.coverAssetKey,
-        }))
+  const display = rows
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['admin', 'programs-table'] })
     void queryClient.invalidateQueries({ queryKey: ['content', 'programs'] })
     void queryClient.invalidateQueries({ queryKey: ['content', 'media'] })
     void queryClient.invalidateQueries({ queryKey: ['admin', 'program-material-counts'] })
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'course-materials-audit'] })
   }
 
   function openEdit(row: (typeof display)[number]) {
@@ -230,12 +226,11 @@ export function AdminCoursesPage() {
   return (
     <>
       <StaffUploadBanner />
+      <CourseMaterialsAuditBanner />
     <AdminDataTable
       title="Courses"
-      description="Upload creates a new course (no need to tie materials to legacy rows). Use Manage on a row to update an existing course."
-      actions={
-        <CourseAdminUploadHeader onOpenUpload={() => setUploadOpen(true)} />
-      }
+      description="Create course adds a row in Supabase; attach PDFs in the same dialog or via Manage / Edit. Students see materials after enrollment approval."
+      actions={<CourseAdminUploadHeader onOpenUpload={() => setUploadOpen(true)} />}
       columns={[
         { key: 'code', header: 'Code', render: (r) => r.code },
         { key: 'title', header: 'Title', render: (r) => r.title },
@@ -245,7 +240,7 @@ export function AdminCoursesPage() {
           key: 'materials',
           header: 'Materials',
           render: (r) => {
-            const n = materialCounts[r.id] ?? 0
+            const n = materialCounts[r.id] ?? materialCounts[r.slug] ?? 0
             return n > 0 ? `${n} file${n === 1 ? '' : 's'}` : '—'
           },
         },
@@ -256,12 +251,28 @@ export function AdminCoursesPage() {
         },
         {
           key: 'view',
-          header: '',
-          render: (r) => (
-            <Link to={`/courses/${r.slug}`} className="text-forest underline">
-              View
-            </Link>
-          ),
+          header: 'Preview',
+          render: (r) =>
+            isDbUuid(r.id) ? (
+              <button
+                type="button"
+                className="text-xs font-semibold text-forest underline"
+                onClick={() =>
+                  setPreview({
+                    open: true,
+                    programId: r.id,
+                    slug: r.slug,
+                    title: r.title,
+                  })
+                }
+              >
+                View
+              </button>
+            ) : (
+              <Link to={`/courses/${r.slug}`} className="text-xs text-forest underline">
+                Catalog
+              </Link>
+            ),
         },
         {
           key: 'manage',
@@ -282,7 +293,13 @@ export function AdminCoursesPage() {
       ]}
       rows={display}
       getRowKey={(r) => r.id}
-      emptyMessage={isLoading ? 'Loading…' : 'No programs in database.'}
+      emptyMessage={
+        isLoading
+          ? 'Loading…'
+          : programsQueryError
+            ? 'Could not load courses from Supabase — sign in as staff and refresh.'
+            : 'No courses yet — use Create course to add your first program.'
+      }
     />
       <CourseMaterialsUploadModal
         open={uploadOpen}
@@ -294,6 +311,13 @@ export function AdminCoursesPage() {
         initial={editModal.initial}
         onClose={() => setEditModal({ open: false, initial: null })}
         onSaved={invalidate}
+      />
+      <CourseMaterialsPreviewModal
+        open={preview.open}
+        programId={preview.programId}
+        slug={preview.slug}
+        title={preview.title}
+        onClose={() => setPreview({ open: false, programId: '', slug: '', title: '' })}
       />
     </>
   )

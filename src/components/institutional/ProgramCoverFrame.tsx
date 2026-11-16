@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 
 type ProgramCoverFrameProps = {
   src?: string | null
@@ -22,9 +22,17 @@ export function ProgramCoverFrame({
   roundedTop = true,
   zoom = false,
 }: ProgramCoverFrameProps) {
+  const [loadFailed, setLoadFailed] = useState(false)
+
+  useEffect(() => {
+    setLoadFailed(false)
+  }, [src])
+
   const imgStyle: CSSProperties | undefined = zoom
     ? { transform: 'scale(1.12)', transformOrigin: 'center center' }
     : undefined
+
+  const showImg = Boolean(src) && !loadFailed
 
   return (
     <div
@@ -34,9 +42,9 @@ export function ProgramCoverFrame({
         className,
       )}
     >
-      {src ? (
+      {showImg ? (
         <img
-          src={src}
+          src={src!}
           alt={alt}
           style={imgStyle}
           className={cn(
@@ -45,6 +53,7 @@ export function ProgramCoverFrame({
           )}
           loading="lazy"
           decoding="async"
+          onError={() => setLoadFailed(true)}
         />
       ) : (
         <div className="size-full min-h-[inherit] [&>*]:!aspect-auto [&>*]:h-full [&>*]:w-full">

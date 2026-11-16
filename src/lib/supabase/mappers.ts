@@ -17,12 +17,12 @@ function asCoverKey(value: string | null): VisualAssetKey {
   if (value && keys.includes(value as VisualAssetKey)) {
     return value as VisualAssetKey
   }
-  return 'course.dms'
+  return 'homepage.hero.banner'
 }
 
 export function mapDbProgram(row: DbProgramRow): LeapProgram {
   return {
-    id: row.legacy_id ?? row.id,
+    id: row.id,
     slug: row.slug,
     code: row.code,
     title: row.title,
@@ -30,8 +30,8 @@ export function mapDbProgram(row: DbProgramRow): LeapProgram {
     feePhp: Number(row.fee_php),
     description: row.description ?? '',
     coverAssetKey: asCoverKey(row.cover_asset_key),
+    coverPublicUrl: row.cover_path,
     carouselCoverPath: row.carousel_cover_path,
-    courseMaterialPath: row.course_material_storage_path,
     featuredInCarousel: row.featured_in_carousel,
     footerStrip: row.footer_strip,
   }
