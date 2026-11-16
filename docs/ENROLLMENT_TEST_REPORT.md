@@ -1,6 +1,6 @@
 # Enrollment workflow — test report
 
-**Database:** migrations **013–018** applied (including `017_enrollment_access_control`, `018_staff_enrollment_notifications`).
+**Database:** migrations **013–018**, **026**, and **031** (enrollment dashboard RPC + course path reset) applied where noted below.
 
 **Code ↔ DB:** RPCs `list_student_dashboard_enrollments`, `staff_verify_payment`, `staff_approve_enrollment`, `user_has_program_access`, and trigger `enrollment_notify_staff` are wired in the React app.
 
@@ -44,13 +44,38 @@ select public.user_has_program_access(
 3. **Student again:** refresh `/dashboard` → **Continue Learning** → open a published `content_items` PDF if admin uploaded one.
 4. **Negative:** as pending student, open reader URL in a new tab; try Storage URL without sign-in.
 
+## Owner end-to-end script (LEAP + TMVS)
+
+### LEAP course pipeline
+
+1. Admin → **Courses** → **Manage** → upload at least one PDF for a test program.
+2. Student: **register** (if Supabase **email confirmation** is on, confirm email and **sign in** before purchasing).
+3. Dashboard → **Purchase a LEAP course** → complete payment fields + receipt → card appears on **My Courses**.
+4. Admin: verify payment → approve enrollment.
+5. Student: **Continue Learning** → materials list matches Admin uploads; download opens signed URL.
+
+### TMVS pipeline
+
+1. Student (signed in): Dashboard → **Apply for TMVS membership** (or `/dashboard?apply=tmvs`) → **Submit membership application** → consent → reference on **Member downloads**.
+2. Admin: membership approvals → verify payment → approve.
+3. Admin: upload member files to `membership-materials/` as needed.
+4. Student: **Member downloads** shows files after approval.
+
+### Negative cases
+
+| Case | Expected |
+|------|----------|
+| Approved enrollment, **zero** admin uploads | Reader shows “No learning materials are available for this course yet.” |
+| Register without confirmed email (confirm ON) | Redirect to login with `next=`; no purchase until signed in |
+| Dashboard enrollment RPC missing (**026**) | Red error on My Courses with migration hint |
+
 ## Configuration notes
 
 | Item | Status |
 |------|--------|
-| Supabase Auth email verification | Depends on project Auth settings |
+| Supabase Auth email verification | If **enabled**, students must confirm email then sign in before enrollments list and purchase modal work |
 | Outbound email for notifications | Not required; in-app only unless SMTP configured |
-| Course PDFs for reader | Admin **Upload materials** on program; empty course shows “no materials” |
+| Course PDFs for reader | Admin **Manage** materials only (`content_items`); migration **031** clears legacy path placeholders |
 | Staff roles | `user_roles` must include registrar/admin for approvals |
 | `Metrobank` payment copy | Institution settings / enroll form (not Apex dev accounts) |
 

@@ -13,6 +13,10 @@ import { useNavigate } from 'react-router-dom'
 
 const STAFF_SLUGS = new Set(['super_admin', 'registrar', 'content_manager'])
 
+export type SignUpResult = {
+  needsEmailConfirmation: boolean
+}
+
 type StaffContextValue = {
   configured: boolean
   session: Session | null
@@ -21,7 +25,7 @@ type StaffContextValue = {
   isTmvsMember: boolean
   loading: boolean
   rolesLoading: boolean
-  signUp: (email: string, password: string, fullName: string) => Promise<void>
+  signUp: (email: string, password: string, fullName: string) => Promise<SignUpResult>
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   refreshStaff: () => Promise<void>
@@ -157,16 +161,26 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   }, [navigate])
 
   const signUp = useCallback(
-    async (email: string, password: string, fullName: string) => {
+    async (email: string, password: string, fullName: string): Promise<SignUpResult> => {
       const supabase = getSupabaseClient()
       if (!supabase) throw new Error('Supabase is not configured')
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { full_name: fullName } },
       })
       if (error) throw error
-      await refreshStaff()
+      if (data.session) {
+        setSession(data.session)
+        setRolesLoading(true)
+        try {
+          await refreshStaff()
+        } finally {
+          setRolesLoading(false)
+        }
+        return { needsEmailConfirmation: false }
+      }
+      return { needsEmailConfirmation: true }
     },
     [refreshStaff],
   )

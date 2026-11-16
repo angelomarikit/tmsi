@@ -71,8 +71,7 @@ export const leapPrograms: LeapProgram[] = [
     description: 'DMS-Vitalogy, vitality concepts and holistic lifestyle education.',
     coverAssetKey: 'course.dms_vitalogy',
     carouselCoverPath: '/assets/course-covers/dms-vitalogy.jpg',
-    courseMaterialPath:
-      'TMSI-LUMINARIAN ACADEMY OF PHILOSOPHICAL STUDIES/COURSE 4-DMS–V — DMS-Vitalogy, vitality concepts and holistic lifestyle education/DMS-V COURSE NEW.pdf',
+    courseMaterialPath: null,
     featuredInCarousel: true,
   },
   {
@@ -86,8 +85,7 @@ export const leapPrograms: LeapProgram[] = [
       'Luminarian Light and Vitality Therapy, consciousness and contemplative practices.',
     coverAssetKey: 'course.dms_llvt',
     carouselCoverPath: '/assets/course-covers/dms-llvt.jpg',
-    courseMaterialPath:
-      'TMSI-LUMINARIAN ACADEMY OF PHILOSOPHICAL STUDIES/COURSE 5-DMS-LLVT — Luminarian Light and Vitality Therapy, consciousness and contemplative practices/DMS-LLVT COURSE.pdf',
+    courseMaterialPath: null,
     featuredInCarousel: true,
   },
   {
@@ -101,8 +99,7 @@ export const leapPrograms: LeapProgram[] = [
     coverAssetKey: 'course.tph_cert',
     carouselCoverPath: null,
     featuredInCarousel: true,
-    courseMaterialPath:
-      'TMSI-LUMINARIAN ACADEMY OF PHILOSOPHICAL STUDIES/COURSE 6-Philosophy of Transcendentalism-PH Certificate — Foundations and philosophy of Transcendentalism-PH/PHILOSOPHY-TPH COURSE.pdf',
+    courseMaterialPath: null,
     footerStrip: true,
   },
   {
@@ -116,8 +113,7 @@ export const leapPrograms: LeapProgram[] = [
       'A three-level pathway in Luminarian philosophical learning and recognition.',
     coverAssetKey: 'course.luminarian_order',
     carouselCoverPath: null,
-    courseMaterialPath:
-      'TMSI-LUMINARIAN ACADEMY OF PHILOSOPHICAL STUDIES/Course 7-Luminarian Order — A three-level pathway in Luminarian philosophical learning and recognition/LUMINAR ORDER LEVEL 1.pdf',
+    courseMaterialPath: null,
     featuredInCarousel: true,
     footerStrip: true,
   },

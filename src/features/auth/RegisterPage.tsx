@@ -24,9 +24,16 @@ export function RegisterPage() {
   async function completeRegistration() {
     setBusy(true)
     try {
-      await signUp(email, password, fullName)
-      toast.success('Account created — purchase courses or apply for TMVS membership from your dashboard.')
+      const result = await signUp(email, password, fullName)
       setPrivacyOpen(false)
+      if (result.needsEmailConfirmation) {
+        toast.success('Confirm your email, then sign in to continue.', {
+          description: 'Check your inbox for the verification link from TMSI–LAPS.',
+        })
+        navigate(`/login?next=${encodeURIComponent(next)}`)
+        return
+      }
+      toast.success('Account created — purchase courses or apply for TMVS membership from your dashboard.')
       navigate(next)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Registration failed')

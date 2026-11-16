@@ -31,7 +31,17 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
       return
     }
     const data = new FormData(e.currentTarget)
+    const paymentReference = String(data.get('paymentReference') ?? '').trim()
+    const paymentDate = String(data.get('paymentDate') ?? '').trim()
     const receipt = data.get('paymentReceipt')
+    if (!paymentReference) {
+      toast.error('Enter your payment reference number')
+      return
+    }
+    if (!paymentDate) {
+      toast.error('Enter your payment date')
+      return
+    }
     if (!(receipt instanceof File) || receipt.size === 0) {
       toast.error('Upload your payment receipt')
       return
@@ -115,15 +125,26 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
                 className="btn-gloss-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50"
               >
                 <Send className="h-4 w-4" aria-hidden />
-                Continue to consent
+                Submit membership application
               </button>
             </form>
 
-            <PaymentProofSection
-              expectedAmountLabel={formatPhp(TMVS_MEMBERSHIP_FEE_PHP)}
-              formId={formId}
-              receiptFooterNote="Submitted with your TMVS application; staff verify before approval."
-            />
+            <div className="space-y-3">
+              <PaymentProofSection
+                expectedAmountLabel={formatPhp(TMVS_MEMBERSHIP_FEE_PHP)}
+                formId={formId}
+                receiptFooterNote="Submitted with your TMVS application; staff verify before approval."
+              />
+              <button
+                type="submit"
+                form={formId}
+                disabled={busy || !session}
+                className="btn-gloss-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" aria-hidden />
+                Submit membership application
+              </button>
+            </div>
           </div>
         </div>
       </div>

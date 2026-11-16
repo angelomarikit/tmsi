@@ -53,13 +53,10 @@ export function CourseDetailPage() {
           <p className="mt-2 text-xs text-ink/60">
             Live fee will reflect admin-published pricing after database connection.
           </p>
-          {program.courseMaterialPath ? (
-            <p className="mt-2 text-xs text-ink/50">
-              Learning materials on file (private PDF — not shown on public site).
-            </p>
-          ) : (
-            <p className="mt-2 text-xs text-amber-800/80">Course materials: pending upload.</p>
-          )}
+          <p className="mt-2 text-xs text-ink/65">
+            Course modules are published by TMSI–LAPS after your enrollment is approved. Files are not
+            listed on this public page.
+          </p>
           <Link
             to={
               session

@@ -13,32 +13,53 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 export function StudentDashboardHome() {
-  const { session, isTmvsMember } = useStaff()
+  const { session, isTmvsMember, loading: authLoading } = useStaff()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [purchaseOpen, setPurchaseOpen] = useState(false)
   const [membershipOpen, setMembershipOpen] = useState(false)
   const [purchaseSlug, setPurchaseSlug] = useState<string | undefined>()
+  const [openPurchaseWhenReady, setOpenPurchaseWhenReady] = useState(false)
+  const [openMembershipWhenReady, setOpenMembershipWhenReady] = useState(false)
 
   useEffect(() => {
     const purchase = searchParams.get('purchase')
     const apply = searchParams.get('apply')
     if (purchase) {
       setPurchaseSlug(purchase)
-      setPurchaseOpen(true)
-    } else if (apply === 'tmvs') {
-      setMembershipOpen(true)
+      setOpenPurchaseWhenReady(true)
+    }
+    if (apply === 'tmvs') {
+      setOpenMembershipWhenReady(true)
     }
     if (purchase || apply === 'tmvs') {
       navigate('/dashboard', { replace: true })
     }
   }, [searchParams, navigate])
 
-  const { data: enrollments = [], isLoading } = useQuery({
+  useEffect(() => {
+    if (!session || authLoading) return
+    if (openPurchaseWhenReady) {
+      setPurchaseOpen(true)
+      setOpenPurchaseWhenReady(false)
+    }
+    if (openMembershipWhenReady) {
+      setMembershipOpen(true)
+      setOpenMembershipWhenReady(false)
+    }
+  }, [session, authLoading, openPurchaseWhenReady, openMembershipWhenReady])
+
+  const {
+    data: enrollments = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['student', 'dashboard-enrollments'],
     queryFn: fetchStudentDashboardEnrollments,
     enabled: Boolean(session),
+    refetchOnWindowFocus: true,
   })
 
   const missingEnrollmentReceipt = enrollments.some(
@@ -91,7 +112,12 @@ export function StudentDashboardHome() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-medium">Could not load enrollments</p>
+          <p className="mt-1 text-xs">{error instanceof Error ? error.message : 'Unknown error'}</p>
+        </div>
+      ) : isLoading ? (
         <p className="text-sm text-ink/60">Loading enrollments…</p>
       ) : enrollments.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gold/40 bg-white px-6 py-12 text-center">
@@ -127,13 +153,13 @@ export function StudentDashboardHome() {
       )}
 
       <CoursePurchaseModal
-        open={purchaseOpen}
+        open={purchaseOpen && Boolean(session) && !authLoading}
         initialSlug={purchaseSlug}
         onClose={() => setPurchaseOpen(false)}
         onSubmitted={invalidate}
       />
       <MembershipApplyModal
-        open={membershipOpen}
+        open={membershipOpen && Boolean(session) && !authLoading}
         onClose={() => setMembershipOpen(false)}
         onSubmitted={invalidate}
       />

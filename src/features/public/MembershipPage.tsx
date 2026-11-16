@@ -1,6 +1,7 @@
 import { DataPrivacyConsentModal } from '@/components/auth/DataPrivacyConsentModal'
 import { PaymentProofSection } from '@/components/forms/PaymentProofSection'
 import { TmvsMembershipApplicantFields } from '@/components/forms/TmvsMembershipApplicantFields'
+import { useStaff } from '@/contexts/StaffContext'
 import { supabaseConfigured } from '@/lib/supabase/client'
 import { registerAndSubmitTmvsMembership } from '@/lib/supabase/membership-submit'
 import { CheckCircle2, ListOrdered, Send } from 'lucide-react'
@@ -25,6 +26,7 @@ const steps = [
 ]
 
 export function MembershipPage() {
+  const { session, loading: authLoading } = useStaff()
   const formRef = useRef<HTMLFormElement>(null)
   const [busy, setBusy] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
@@ -165,7 +167,31 @@ export function MembershipPage() {
         </div>
 
         <div className="rounded-xl border-2 border-forest/30 bg-white p-5 shadow-sm">
-          {submittedRef ? (
+          {session && !authLoading ? (
+            <div className="py-2">
+              <h3 className="font-display text-lg text-forest">You are signed in</h3>
+              <p className="mt-2 text-sm text-ink/80">
+                Submit your TMVS application from the student dashboard — one form with payment proof,
+                no need to create another password here.
+              </p>
+              <Link
+                to="/dashboard?apply=tmvs"
+                className="btn-gloss-gold mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink no-underline"
+              >
+                <Send className="h-4 w-4" aria-hidden />
+                Apply from dashboard
+              </Link>
+              <p className="mt-3 text-center text-xs text-ink/60">
+                New to TMSI–LAPS?{' '}
+                <Link to="/register?next=%2Fdashboard%3Fapply%3Dtmvs" className="text-forest underline">
+                  Create an account
+                </Link>{' '}
+                first, then use the button above.
+              </p>
+            </div>
+          ) : authLoading ? (
+            <p className="text-sm text-ink/60">Loading sign-in status…</p>
+          ) : submittedRef ? (
             <div className="text-center py-4">
               <p className="font-display text-lg font-semibold text-forest">
                 Application received
@@ -215,11 +241,13 @@ export function MembershipPage() {
           )}
         </div>
 
-        <PaymentProofSection
-          expectedAmountLabel="₱2,500.00"
-          formId="tmvs-membership-form"
-          receiptFooterNote="Submitted with your TMVS application; staff verify payment before approval."
-        />
+        {session && !authLoading ? null : (
+          <PaymentProofSection
+            expectedAmountLabel="₱2,500.00"
+            formId="tmvs-membership-form"
+            receiptFooterNote="Submitted with your TMVS application; staff verify payment before approval."
+          />
+        )}
       </section>
 
       <DataPrivacyConsentModal

@@ -19,9 +19,15 @@ export type StudentEnrollmentCard = {
 
 export async function fetchStudentDashboardEnrollments(): Promise<StudentEnrollmentCard[]> {
   const supabase = getSupabaseClient()
-  if (!supabase) return []
+  if (!supabase) {
+    throw new Error('Supabase is not configured')
+  }
   const { data, error } = await supabase.rpc('list_student_dashboard_enrollments')
-  if (error) return []
+  if (error) {
+    throw new Error(
+      `${error.message} — confirm migrations 017 and 026 (list_student_dashboard_enrollments) are applied.`,
+    )
+  }
   return ((data ?? []) as StudentEnrollmentCard[]).map((row) => ({
     ...row,
     has_payment_receipt: Boolean(row.has_payment_receipt),

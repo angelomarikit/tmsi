@@ -107,6 +107,8 @@ export function StudentMembershipDownloadsPage() {
     return <p className="text-sm text-ink/60">Checking membership access…</p>
   }
 
+  const canStartApplication = !status || status.status === 'rejected'
+
   if (!hasAccess) {
     return (
       <div className="grid gap-6 lg:grid-cols-2">
@@ -139,32 +141,32 @@ export function StudentMembershipDownloadsPage() {
               : status?.status === 'submitted' || status?.status === 'under_review'
                 ? 'Your TMVS application is pending registrar approval. Downloads unlock after approval.'
                 : status?.status === 'rejected'
-                  ? 'Your membership application was not approved. Contact the registrar for assistance.'
+                  ? 'Your membership application was not approved. You may apply again or contact the registrar.'
                   : 'Apply for TMVS membership to access member materials after approval.'}
           </p>
           {status?.reference_code ? (
             <p className="mt-2 text-xs text-ink/60">Reference: {status.reference_code}</p>
           ) : null}
-          {!status && !needsPaymentReceipt ? (
+          {canStartApplication && !needsPaymentReceipt ? (
             <>
               <button
                 type="button"
                 className="btn-gloss-gold mt-4 w-full rounded-full py-2 text-sm font-semibold text-ink"
                 onClick={() => setMembershipOpen(true)}
               >
-                Apply for TMVS membership
+                {status?.status === 'rejected' ? 'Apply again for TMVS membership' : 'Apply for TMVS membership'}
               </button>
               <p className="mt-2 text-center text-[10px] text-ink/55">
                 No TMVS account needed for LEAP — optional society membership only.
               </p>
             </>
           ) : null}
-          {!status && !needsPaymentReceipt ? (
+          {canStartApplication && !needsPaymentReceipt ? (
             <Link
               to="/membership"
               className="mt-2 block text-center text-xs text-forest underline"
             >
-              Or apply as a guest on the public TMVS page
+              Or read membership details on the public TMVS page
             </Link>
           ) : null}
         </div>

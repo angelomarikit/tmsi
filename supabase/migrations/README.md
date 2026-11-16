@@ -34,6 +34,16 @@
 28. `028_ebook_storage_path_repair.sql` (optional: fix `pdf_path` after seed overwrote Admin uploads)
 29. `029_ebooks_reset_for_manual_upload.sql` (wipe legacy folder paths; use Admin upload only)
 30. `030_clear_ebook_catalog.sql` (delete all `ebooks` rows — start empty Admin list)
+31. `031_clear_program_material_paths.sql` (clear legacy `course_material_storage_path`; use Admin materials only)
+
+## LEAP course materials (checklist)
+
+The student reader uses **`content_items`** for each program — not PC folder paths or `programs.course_material_storage_path`.
+
+1. Migrations **012**, **015**, **017**, **026**, and **031** applied.
+2. Admin → **Courses** → **Manage** on a program → upload PDFs/videos to Storage (`private-documents/course-materials/{slug}/…`).
+3. Staff **Verify payment** then **Approve enrollment** on `/admin/enrollment-approvals`.
+4. Student → **Continue Learning** lists only uploaded `content_items` (empty list is normal until step 2).
 
 ## Public eBook downloads (checklist)
 
