@@ -22,8 +22,9 @@ export function StaffUploadBanner() {
   if (!isStaff) {
     return (
       <div className="mb-4 rounded-lg border border-red-300/50 bg-red-50 px-4 py-3 text-sm text-red-950">
-        Signed in as {session.user.email}, but <strong>no staff role</strong> is assigned. Ask an
-        owner to add your user to <code className="text-xs">user_roles</code> in Supabase.
+        Signed in as {session.user.email}, but <strong>no super_admin</strong> role is in Supabase{' '}
+        <code className="text-xs">user_roles</code>. PDF upload needs super_admin (registrar and
+        content_manager also work).
       </div>
     )
   }

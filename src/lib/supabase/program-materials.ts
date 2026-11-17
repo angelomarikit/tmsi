@@ -1,4 +1,5 @@
 import { assertStaffCanUploadMaterials } from '@/lib/supabase/course-materials-audit'
+import { fetchCourseUploadDiagnostics } from '@/lib/supabase/course-upload-diagnostics'
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { uploadPrivateDocument } from '@/lib/supabase/cms-upload'
 
@@ -202,27 +203,7 @@ async function registerProgramMaterialRow(
   const supabase = getSupabaseClient()
   if (!supabase) throw new Error('Supabase is not configured')
 
-  const { data: rpcRows, error: rpcError } = await supabase.rpc('staff_register_program_material', {
-    p_program_id: programId,
-    p_label: label,
-    p_file_path: storagePath,
-  })
-
-  if (!rpcError && rpcRows?.length) {
-    return rpcRows[0] as ProgramMaterialRow
-  }
-
-  const rpcMissing =
-    rpcError &&
-    (rpcError.code === 'PGRST202' || /staff_register_program_material/i.test(rpcError.message ?? ''))
-
-  if (rpcError && !rpcMissing) {
-    throw new Error(
-      `${label}: ${rpcError.message}${/staff only/i.test(rpcError.message) ? ' (user_roles staff)' : ''}`,
-    )
-  }
-
-  const { data, error } = await supabase
+  const { data: directRow, error: directError } = await supabase
     .from('content_items')
     .insert({
       entity_type: ENTITY_TYPE,
@@ -234,15 +215,45 @@ async function registerProgramMaterialRow(
     .select('id, label, file_path, status, created_at')
     .single()
 
-  if (error) {
-    const hint = /row-level security|policy/i.test(error.message)
-      ? ' Staff role required — run migrations 011, 012, 035 and assign user_roles.'
-      : rpcMissing
-        ? ' Run migration 035_staff_upload_program_material.sql in Supabase.'
-        : ''
-    throw new Error(`${label}: ${error.message}${hint}`)
+  if (!directError && directRow) {
+    return directRow as ProgramMaterialRow
   }
-  return data as ProgramMaterialRow
+
+  const { data: rpcRows, error: rpcError } = await supabase.rpc('staff_register_program_material', {
+    p_program_id: programId,
+    p_label: label,
+    p_file_path: storagePath,
+  })
+
+  if (!rpcError) {
+    const rpcList = Array.isArray(rpcRows) ? rpcRows : rpcRows ? [rpcRows] : []
+    if (rpcList.length > 0) return rpcList[0] as ProgramMaterialRow
+  }
+
+  const rpcMissing =
+    rpcError &&
+    (rpcError.code === 'PGRST202' || /staff_register_program_material/i.test(rpcError.message ?? ''))
+
+  const directMsg = directError?.message ?? 'unknown'
+  const rpcMsg = rpcError?.message ?? (rpcMissing ? 'RPC not deployed' : 'no row returned')
+  const staffHint = /row-level security|policy|staff only/i.test(`${directMsg} ${rpcMsg}`)
+    ? ' Assign user_roles (super_admin, registrar, content_manager) and run migrations 011, 012, 035, 038.'
+    : rpcMissing
+      ? ' Run 035 and 038 in Supabase SQL Editor.'
+      : ''
+
+  throw new Error(`${label}: could not register file in database (${directMsg}; RPC: ${rpcMsg}).${staffHint}`)
+}
+
+/** Upload exactly one PDF/video — used by Admin → Manage (one-by-one flow). */
+export async function uploadSingleProgramMaterial(
+  programId: string,
+  programSlug: string,
+  file: File,
+): Promise<ProgramMaterialRow> {
+  const { rows } = await uploadProgramMaterials(programId, programSlug, [file])
+  if (rows.length === 0) throw new Error('Upload returned no database row')
+  return rows[0]
 }
 
 export async function uploadProgramMaterials(
@@ -254,7 +265,16 @@ export async function uploadProgramMaterials(
   if (!supabase) throw new Error('Supabase is not configured')
   if (files.length === 0) return { count: 0, rows: [] }
 
-  await assertStaffCanUploadMaterials()
+  const diag = await fetchCourseUploadDiagnostics()
+  if (!diag.ok) {
+    try {
+      await assertStaffCanUploadMaterials()
+    } catch {
+      throw new Error(
+        `Upload blocked: ${diag.fixSteps[0] ?? diag.probeError ?? 'super_admin not linked in user_roles'}`,
+      )
+    }
+  }
   const program = await resolveProgramForUpload(programId, programSlug)
 
   const rejected: string[] = []
@@ -273,14 +293,20 @@ export async function uploadProgramMaterials(
       await uploadPrivateDocument(storagePath, file)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Storage upload failed'
-      if (/row-level security|policy|JWT|not authorized/i.test(msg)) {
+      if (/row-level security|policy|JWT|not authorized|403/i.test(msg)) {
         throw new Error(
-          `${msg} — sign in as admin with a staff role (migration 011 / user_roles).`,
+          `[Storage] ${msg} — assign super_admin in user_roles (Admin login). Run migration 011.`,
         )
       }
-      throw new Error(`${file.name}: ${msg}`)
+      throw new Error(`[Storage] ${file.name}: ${msg}`)
     }
-    const row = await registerProgramMaterialRow(program.id, file.name, storagePath)
+    let row: ProgramMaterialRow
+    try {
+      row = await registerProgramMaterialRow(program.id, file.name || safeName, storagePath)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Database register failed'
+      throw new Error(`[Database] ${msg}`)
+    }
     rows.push(row)
   }
 

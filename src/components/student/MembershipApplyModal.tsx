@@ -8,7 +8,7 @@ import {
 } from '@/lib/supabase/membership-submit'
 import { formatPhp } from '@/lib/utils'
 import { Send, X } from 'lucide-react'
-import { useId, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 
@@ -20,6 +20,7 @@ type Props = {
 
 export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
   const formId = useId().replace(/:/g, '')
+  const formRef = useRef<HTMLFormElement>(null)
   const { session } = useStaff()
   const [busy, setBusy] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
@@ -54,8 +55,11 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
   }
 
   async function confirmSubmit() {
-    const form = document.getElementById(formId) as HTMLFormElement | null
-    if (!form) return
+    const form = formRef.current
+    if (!form) {
+      toast.error('Form not ready — close and reopen the application dialog')
+      return
+    }
     const data = new FormData(form)
     const receipt = data.get('paymentReceipt')
     if (!(receipt instanceof File) || receipt.size === 0) return
@@ -91,7 +95,7 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
   return createPortal(
     <>
       <div
-        className="fixed inset-0 z-[250] flex items-start justify-center overflow-y-auto bg-black/45 p-4 pt-8"
+        className="fixed inset-0 z-[250] flex items-end justify-center overflow-y-auto bg-black/45 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-start sm:p-4 sm:pt-8"
         onClick={onClose}
         role="presentation"
       >
@@ -99,7 +103,7 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
           role="dialog"
           aria-modal="true"
           aria-labelledby="tmvs-apply-title"
-          className="mb-8 w-full max-w-4xl rounded-2xl border border-gold/35 bg-ivory shadow-xl"
+          className="mb-0 max-h-[min(96dvh,920px)] w-full max-w-4xl overflow-y-auto rounded-2xl border border-gold/35 bg-ivory shadow-xl sm:mb-8"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-gold/25 px-5 py-4">
@@ -116,13 +120,13 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
             </button>
           </div>
 
-          <div className="grid gap-6 p-5 lg:grid-cols-[1.1fr_0.9fr]">
-            <form id={formId} className="space-y-3" onSubmit={onSubmit}>
+          <div className="grid gap-5 p-4 sm:gap-6 sm:p-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <form id={formId} ref={formRef} className="space-y-3" onSubmit={onSubmit}>
               <TmvsMembershipApplicantFields sessionEmail={sessionEmail} />
               <button
                 type="submit"
                 disabled={busy || !session}
-                className="btn-gloss-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50"
+                className="btn-gloss-gold hidden min-h-[44px] w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50 lg:flex"
               >
                 <Send className="h-4 w-4" aria-hidden />
                 Submit membership application
@@ -139,7 +143,7 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
                 type="submit"
                 form={formId}
                 disabled={busy || !session}
-                className="btn-gloss-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50"
+                className="btn-gloss-gold flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-ink disabled:opacity-50"
               >
                 <Send className="h-4 w-4" aria-hidden />
                 Submit membership application

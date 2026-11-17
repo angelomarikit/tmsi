@@ -1,4 +1,5 @@
 import { AdminDataTable } from '@/components/admin/AdminDataTable'
+import { CourseCatalogResetButton } from '@/components/admin/CourseCatalogResetButton'
 import { CourseAdminUploadHeader } from '@/components/admin/CourseAdminUploadHeader'
 import { CourseEditModal, type CourseEditInitial } from '@/components/admin/CourseEditModal'
 import { CourseMaterialsPreviewModal } from '@/components/admin/CourseMaterialsPreviewModal'
@@ -229,8 +230,13 @@ export function AdminCoursesPage() {
       <CourseMaterialsAuditBanner />
     <AdminDataTable
       title="Courses"
-      description="Create course adds a row in Supabase; attach PDFs in the same dialog or via Manage / Edit. Students see materials after enrollment approval."
-      actions={<CourseAdminUploadHeader onOpenUpload={() => setUploadOpen(true)} />}
+      description="Create course, then Manage to upload PDFs one at a time. Preview opens the book reader."
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <CourseAdminUploadHeader onOpenUpload={() => setUploadOpen(true)} />
+          <CourseCatalogResetButton onReset={invalidate} />
+        </div>
+      }
       columns={[
         { key: 'code', header: 'Code', render: (r) => r.code },
         { key: 'title', header: 'Title', render: (r) => r.title },
@@ -318,6 +324,7 @@ export function AdminCoursesPage() {
         slug={preview.slug}
         title={preview.title}
         onClose={() => setPreview({ open: false, programId: '', slug: '', title: '' })}
+        onMaterialsChanged={invalidate}
       />
     </>
   )

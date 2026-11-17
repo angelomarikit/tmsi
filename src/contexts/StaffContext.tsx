@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const STAFF_SLUGS = new Set(['super_admin', 'registrar', 'content_manager'])
+import { ADMIN_UPLOAD_ROLE_SET } from '@/lib/admin-roles'
 
 export type SignUpResult = {
   needsEmailConfirmation: boolean
@@ -70,14 +70,14 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     ])
 
     let staff = Boolean(staffData) && !staffErr
-    if (!staff && staffErr) {
+    if (!staff) {
       const { data: roleRows } = await supabase
         .from('user_roles')
         .select('roles(slug)')
         .eq('user_id', userId)
       staff = (roleRows ?? []).some((row) => {
         const slug = (row.roles as { slug?: string })?.slug
-        return slug != null && STAFF_SLUGS.has(slug)
+        return slug != null && ADMIN_UPLOAD_ROLE_SET.has(slug)
       })
     }
 
@@ -150,14 +150,14 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     let staff = false
     const { data: staffData, error: staffErr } = await supabase.rpc('current_user_is_staff')
     staff = Boolean(staffData) && !staffErr
-    if (!staff && userId && staffErr) {
+    if (!staff && userId) {
       const { data: roleRows } = await supabase
         .from('user_roles')
         .select('roles(slug)')
         .eq('user_id', userId)
       staff = (roleRows ?? []).some((row) => {
         const slug = (row.roles as { slug?: string })?.slug
-        return slug != null && STAFF_SLUGS.has(slug)
+        return slug != null && ADMIN_UPLOAD_ROLE_SET.has(slug)
       })
     }
     return { isStaff: staff }

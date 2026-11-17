@@ -1,3 +1,4 @@
+import { ADMIN_UPLOAD_ROLE_SET } from '@/lib/admin-roles'
 import { getSupabaseClient, supabaseConfigured } from '@/lib/supabase/client'
 
 export type CourseMaterialsAudit = {
@@ -61,7 +62,7 @@ export async function probeCourseMaterialsBackend(
     const p = probe as { leap_material_rows?: number; is_staff?: boolean }
     leapMaterialRows = typeof p.leap_material_rows === 'number' ? p.leap_material_rows : null
     if (p.is_staff === false && staffDb !== true) {
-      migrationsHint.push('Assign staff role in Supabase user_roles (super_admin, registrar, content_manager)')
+      migrationsHint.push('Assign super_admin in Supabase user_roles (same as Admin login)')
     }
   }
 
@@ -88,25 +89,38 @@ export async function assertStaffCanUploadMaterials(): Promise<void> {
     throw new Error('Sign in as admin before uploading course PDFs')
   }
   const { data, error } = await supabase.rpc('current_user_is_staff')
+  if (!error && data) return
+
+  const { data: userData } = await supabase.auth.getUser()
+  if (userData.user) {
+    const { data: roleRows } = await supabase
+      .from('user_roles')
+      .select('roles(slug)')
+      .eq('user_id', userData.user.id)
+    const viaRoles = (roleRows ?? []).some((row) => {
+      const slug = (row.roles as { slug?: string })?.slug
+      return slug != null && ADMIN_UPLOAD_ROLE_SET.has(slug)
+    })
+    if (viaRoles) return
+  }
+
   if (error) {
     const { data: probe, error: probeErr } = await supabase.rpc('admin_probe_course_materials_access')
     if (probeErr?.code === 'PGRST202') {
       throw new Error(
-        `${error.message} — run migration 035 in Supabase SQL Editor, then confirm user_roles staff assignment.`,
+        `${error.message} — run migrations 035 and 038 in Supabase SQL Editor, then confirm user_roles staff assignment.`,
       )
     }
     if (probe && typeof probe === 'object' && (probe as { is_staff?: boolean }).is_staff === false) {
       throw new Error(
-        'Your account is signed in but has no staff role in Supabase — uploads are blocked by RLS (migrations 011 & 012).',
+        'Signed in but no super_admin in user_roles — uploads blocked (migrations 011 & 012).',
       )
     }
     throw new Error(error.message)
   }
-  if (!data) {
-    throw new Error(
-      'No staff role in Supabase for this account — add user_roles (super_admin, registrar, or content_manager).',
-    )
-  }
+  throw new Error(
+    'No super_admin in user_roles for this account — run grant SQL from the red diagnostics box on Courses.',
+  )
 }
 
 export async function auditAdminCoursesTable(): Promise<

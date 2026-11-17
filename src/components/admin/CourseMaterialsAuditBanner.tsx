@@ -61,26 +61,9 @@ export function CourseMaterialsAuditBanner() {
     if (!hints.includes(h)) hints.push(h)
   }
 
-  hints.push('Run SQL migrations 011, 012, 033, 034, and 035 in Supabase if uploads still fail.')
+  if (problems.length === 0) return null
 
-  if (problems.length === 0) {
-    return (
-      <div className="mb-4 rounded-lg border border-forest/25 bg-forest/5 px-4 py-3 text-xs text-forest">
-        <strong>Course materials pipeline OK.</strong>{' '}
-        {audit.data?.table.programRowCount != null ? (
-          <span>
-            {audit.data.table.programRowCount} program(s) in database
-            {audit.data.probe.leapMaterialRows != null
-              ? ` · ${audit.data.probe.leapMaterialRows} LEAP file row(s) in content_items`
-              : ''}
-            .
-          </span>
-        ) : (
-          <span>PDFs save to Storage, then content_items (students see them after enrollment approval).</span>
-        )}
-      </div>
-    )
-  }
+  hints.push('Run SQL migrations 011, 012, 035, 036, 038 in Supabase. Use Reset all courses on this page for a clean catalog.')
 
   return (
     <div className="mb-4 rounded-lg border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-950">

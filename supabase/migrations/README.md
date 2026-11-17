@@ -41,12 +41,17 @@
 35. `035_staff_upload_program_material.sql` (`staff_register_program_material` + upload diagnostics probe)
 36. `036_reset_leap_courses.sql` (`staff_reset_leap_catalog` — optional RPC wipe; requires WHERE-safe deletes)
 37. `037_one_time_clear_programs.sql` (**run once** to delete all courses — then use Admin → Create course)
+38. `038_register_material_path_relaxed.sql` (fix `staff_register_program_material` path check — run if uploads reach Storage but Materials stays “—”)
+39. `039_drop_legacy_program_material_path.sql` (null legacy `course_material_storage_path` — app uses content_items only)
+40. `040_course_upload_diagnostics.sql` (admin probe shows `is_staff`, roles, missing RPC — fixes “why upload fails”)
+41. `041_admin_upload_clarify.sql` (`is_admin` = super_admin upload; friendlier RPC errors)
+42. `041_grant_super_admin_example.sql` (template SQL by email — edit email, never paste placeholder UUIDs)
 
 ## LEAP course materials (checklist)
 
 The student reader uses **`content_items`** for each program — not PC folder paths or `programs.course_material_storage_path`.
 
-1. Migrations **012**, **015**, **017**, **026**, **031**, **033**, **034**, and **035** applied.
+1. Migrations **012**, **015**, **017**, **026**, **031**, **033**, **034**, **035**, and **038** applied.
 2. Admin → **Courses** → **Manage** on a program → upload PDFs/videos to Storage (`private-documents/course-materials/{slug}/…`).
 3. Staff **Verify payment** then **Approve enrollment** on `/admin/enrollment-approvals`.
 4. Student → **Continue Learning** lists only uploaded `content_items` (empty list is normal until step 2).

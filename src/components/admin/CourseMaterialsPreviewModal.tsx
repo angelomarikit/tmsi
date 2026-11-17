@@ -1,7 +1,7 @@
+import { PdfBookViewer } from '@/components/reader/PdfBookViewer'
 import { createMaterialSignedUrl } from '@/lib/supabase/learning-access'
 import {
   fetchProgramMaterials,
-  fetchProgramMaterialsBySlug,
   isPdfMaterial,
   isVideoMaterial,
   type ProgramMaterialRow,
@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, FileText, Film, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
   slug: string
   title: string
   onClose: () => void
+  onMaterialsChanged?: () => void
 }
 
 export function CourseMaterialsPreviewModal({
@@ -29,6 +31,7 @@ export function CourseMaterialsPreviewModal({
 }: Props) {
   const [materials, setMaterials] = useState<ProgramMaterialRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [urlLoading, setUrlLoading] = useState(false)
@@ -38,22 +41,21 @@ export function CourseMaterialsPreviewModal({
   const isVideo = current?.file_path ? isVideoMaterial(current.file_path) : false
 
   const loadMaterials = useCallback(async () => {
-    if (!open) return
+    if (!open || !programId) return
     setLoading(true)
+    setLoadError(null)
     try {
-      let rows = await fetchProgramMaterials(programId)
-      if (rows.length === 0) {
-        rows = await fetchProgramMaterialsBySlug(slug)
-      }
+      const rows = await fetchProgramMaterials(programId, { throwOnError: true })
       setMaterials(rows.filter((m) => m.file_path))
       setIndex(0)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not load materials')
+      const msg = err instanceof Error ? err.message : 'Could not load materials'
+      setLoadError(msg)
       setMaterials([])
     } finally {
       setLoading(false)
     }
-  }, [open, programId, slug])
+  }, [open, programId])
 
   useEffect(() => {
     void loadMaterials()
@@ -73,7 +75,7 @@ export function CourseMaterialsPreviewModal({
       .catch(() => {
         if (!cancelled) {
           setPreviewUrl(null)
-          toast.error('Could not open this file from storage')
+          toast.error('Could not open file from storage')
         }
       })
       .finally(() => {
@@ -93,7 +95,7 @@ export function CourseMaterialsPreviewModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[260] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[260] flex items-center justify-center bg-black/55 p-2 sm:p-3"
       role="presentation"
       onClick={onClose}
     >
@@ -101,7 +103,7 @@ export function CourseMaterialsPreviewModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="course-materials-preview-title"
-        className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-gold/35 bg-ivory shadow-2xl"
+        className="flex h-[min(96dvh,920px)] w-full max-w-[min(98vw,1280px)] flex-col overflow-hidden rounded-2xl border border-gold/35 bg-ivory shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-start justify-between gap-3 border-b border-gold/25 bg-white px-5 py-4">
@@ -120,11 +122,22 @@ export function CourseMaterialsPreviewModal({
           <p className="px-5 py-12 text-sm text-ink/60">Loading materials…</p>
         ) : materials.length === 0 ? (
           <div className="px-5 py-12 text-center text-sm text-ink/70">
-            <p>No PDFs or videos uploaded for this course yet.</p>
-            <p className="mt-2 text-xs text-ink/55">Use Manage to upload files under this slug.</p>
+            <p>No files in the database for this course.</p>
+            {loadError ? (
+              <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                {loadError}
+              </p>
+            ) : null}
+            <Link
+              to={`/admin/courses/${slug}/materials`}
+              className="mt-4 inline-block rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white no-underline"
+              onClick={onClose}
+            >
+              Upload PDFs (one at a time)
+            </Link>
           </div>
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gold/15 bg-cream/40 px-5 py-3">
               <p className="flex items-center gap-2 text-sm font-medium text-forest">
                 {isVideo ? (
@@ -159,20 +172,19 @@ export function CourseMaterialsPreviewModal({
               </div>
             </div>
 
-            <MaterialStrip
-              materials={materials}
-              index={index}
-              onSelect={setIndex}
-            />
+            <MaterialStrip materials={materials} index={index} onSelect={setIndex} />
 
-            <div className="min-h-[min(65vh,560px)] flex-1 bg-ink/5 p-4">
+            <div className="flex min-h-0 flex-1 flex-col bg-cream/50 p-3">
               {urlLoading ? (
                 <p className="py-20 text-center text-sm text-ink/60">Opening file…</p>
               ) : previewUrl && isPdf ? (
-                <iframe
+                <PdfBookViewer
+                  key={previewUrl}
+                  url={previewUrl}
                   title={current?.label ?? 'PDF preview'}
-                  src={previewUrl}
-                  className="h-[min(65vh,560px)] w-full rounded-lg border border-gold/35 bg-white"
+                  defaultMode="book"
+                  className="min-h-0 flex-1"
+                  maxHeight="100%"
                 />
               ) : previewUrl && isVideo ? (
                 <video
@@ -187,7 +199,7 @@ export function CourseMaterialsPreviewModal({
                 <p className="py-20 text-center text-sm text-ink/60">Preview unavailable for this file.</p>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>,

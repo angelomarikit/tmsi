@@ -34,7 +34,7 @@ export async function createNewCourse(payload: CreateCoursePayload) {
       title: payload.title.trim(),
       subtitle: payload.subtitle.trim(),
       fee_php: payload.feePhp,
-      publication_status: 'under_review',
+      publication_status: 'published',
       active: true,
     })
     .select('id, slug')

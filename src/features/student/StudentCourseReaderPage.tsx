@@ -1,3 +1,4 @@
+import { PdfBookViewer } from '@/components/reader/PdfBookViewer'
 import {
   checkProgramAccess,
   fetchStudentDashboardEnrollments,
@@ -10,7 +11,7 @@ import { isPdfMaterial, isVideoMaterial } from '@/lib/supabase/program-materials
 import { Download, FileText, Film } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 export function StudentCourseReaderPage() {
@@ -18,6 +19,13 @@ export function StudentCourseReaderPage() {
   const [viewUrl, setViewUrl] = useState<string | null>(null)
   const [viewLabel, setViewLabel] = useState<string | null>(null)
   const [viewKind, setViewKind] = useState<'pdf' | 'video' | null>(null)
+  const readerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (viewUrl && readerRef.current) {
+      readerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [viewUrl, viewKind])
 
   const { data: hasAccess, isLoading: accessLoading } = useQuery({
     queryKey: ['student', 'access', courseId],
@@ -80,8 +88,8 @@ export function StudentCourseReaderPage() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-      <aside className="rounded-xl border border-gold/30 bg-white p-4 shadow-sm">
+    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,240px)_1fr] lg:gap-6">
+      <aside className="rounded-xl border border-gold/30 bg-white p-3 shadow-sm sm:p-4">
         <Link to="/dashboard" className="text-xs text-forest underline">
           ← My Courses
         </Link>
@@ -91,7 +99,7 @@ export function StudentCourseReaderPage() {
         <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink/50">
           Materials
         </p>
-        <ul className="mt-2 space-y-2 text-sm">
+        <ul className="mt-2 max-h-[40dvh] space-y-2 overflow-y-auto text-sm lg:max-h-none">
           {materialsError ? (
             <li className="text-xs text-amber-950">
               Could not load materials.{' '}
@@ -123,7 +131,7 @@ export function StudentCourseReaderPage() {
         </ul>
       </aside>
 
-      <div>
+      <div className="min-w-0">
         {materialsError ? (
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <p className="font-medium">Could not load course materials</p>
@@ -132,7 +140,7 @@ export function StudentCourseReaderPage() {
             </p>
           </div>
         ) : null}
-        <ul className="space-y-3">
+        <ul className="hidden space-y-3 lg:block">
           {materials.map((m) =>
             m.file_path ? (
               <li
@@ -179,11 +187,17 @@ export function StudentCourseReaderPage() {
           </video>
         ) : null}
         {viewUrl && viewKind === 'pdf' ? (
-          <iframe
-            title={viewLabel ?? 'Course PDF'}
-            src={viewUrl}
-            className="mt-6 h-[min(70vh,720px)] w-full rounded-lg border border-gold/35 bg-ivory"
-          />
+          <div ref={readerRef} className="mt-4 lg:mt-6">
+            <p className="mb-2 font-display text-base text-forest sm:text-lg">{viewLabel}</p>
+            <PdfBookViewer
+              key={viewUrl}
+              url={viewUrl}
+              title={viewLabel ?? 'Course PDF'}
+              defaultMode="book"
+              maxHeight="min(72dvh, 880px)"
+              className="w-full"
+            />
+          </div>
         ) : null}
       </div>
     </div>

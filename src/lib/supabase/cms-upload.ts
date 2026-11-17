@@ -89,17 +89,6 @@ export async function updateEbookAfterUpload(
   if (error) throw error
 }
 
-export async function updateProgramCourseMaterial(slug: string, storagePath: string) {
-  const supabase = getSupabaseClient()
-  if (!supabase) throw new Error('Supabase is not configured')
-
-  const { error } = await supabase
-    .from('programs')
-    .update({ course_material_storage_path: storagePath })
-    .eq('slug', slug)
-  if (error) throw error
-}
-
 export async function updateProgramCoverAsset(assetKey: string, publicUrl: string) {
   const supabase = getSupabaseClient()
   if (!supabase) throw new Error('Supabase is not configured')

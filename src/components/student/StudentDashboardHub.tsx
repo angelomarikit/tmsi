@@ -7,16 +7,16 @@ type Props = {
 
 export function StudentDashboardHub({ onPurchaseCourse, onApplyMembership }: Props) {
   return (
-    <div className="mb-8 rounded-xl border border-gold/30 bg-white p-5 shadow-sm">
+    <div className="mb-6 rounded-xl border border-gold/30 bg-white p-4 shadow-sm sm:mb-8 sm:p-5">
       <h2 className="font-display text-lg font-semibold text-forest">Learner hub</h2>
       <p className="mt-1 text-sm text-ink/75">
         Purchase LEAP courses and/or apply for TMVS membership — separate tracks, one login. Pay via
         Metrobank QR and upload payment proof in each flow.
       </p>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
         <button
           type="button"
-          className="btn-gloss-green inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+          className="btn-gloss-green inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white sm:w-auto"
           onClick={onPurchaseCourse}
         >
           <BookOpen className="h-4 w-4" aria-hidden />
@@ -24,7 +24,7 @@ export function StudentDashboardHub({ onPurchaseCourse, onApplyMembership }: Pro
         </button>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-gold/50 bg-cream px-5 py-2.5 text-sm font-semibold text-forest"
+          className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-gold/50 bg-cream px-5 py-2.5 text-sm font-semibold text-forest sm:w-auto"
           onClick={onApplyMembership}
         >
           <Users className="h-4 w-4" aria-hidden />

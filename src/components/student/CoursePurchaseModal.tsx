@@ -87,7 +87,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[250] flex items-start justify-center overflow-y-auto bg-black/45 p-4 pt-8"
+      className="fixed inset-0 z-[250] flex items-end justify-center overflow-y-auto bg-black/45 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:items-start sm:p-4 sm:pt-8"
       onClick={onClose}
       role="presentation"
     >
@@ -95,7 +95,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
         role="dialog"
         aria-modal="true"
         aria-labelledby="course-purchase-title"
-        className="mb-8 w-full max-w-4xl rounded-2xl border border-gold/35 bg-ivory shadow-xl"
+        className="mb-0 max-h-[min(96dvh,920px)] w-full max-w-4xl overflow-y-auto rounded-2xl border border-gold/35 bg-ivory shadow-xl sm:mb-8"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       >
@@ -114,7 +114,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
             registrar.
           </p>
         ) : (
-        <div className="grid gap-6 p-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-5 p-4 sm:gap-6 sm:p-5 lg:grid-cols-[1.1fr_0.9fr]">
           <form id={formId} className="space-y-5" onSubmit={onSubmit} encType="multipart/form-data">
             <label className="block text-xs font-medium text-ink">
               Course
@@ -137,7 +137,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
             <button
               type="submit"
               disabled={busy || !session || !selected}
-              className="btn-gloss-green flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
+              className="btn-gloss-green flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               <Send className="h-4 w-4" aria-hidden />
               {busy ? 'Submitting…' : 'Submit enrollment & payment proof'}

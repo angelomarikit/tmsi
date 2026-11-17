@@ -8,6 +8,8 @@ type Props = {
   busy: boolean
   title?: string
   confirmLabel?: string
+  /** Stack above parent modals (e.g. membership apply at z-250) */
+  overlayZIndex?: number
   onClose: () => void
   onConfirm: () => void
 }
@@ -17,6 +19,7 @@ export function DataPrivacyConsentModal({
   busy,
   title = 'Your data is protected',
   confirmLabel = 'Confirm and submit',
+  overlayZIndex = 300,
   onClose,
   onConfirm,
 }: Props) {
@@ -29,7 +32,10 @@ export function DataPrivacyConsentModal({
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/45 p-4">
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/45 p-4"
+      style={{ zIndex: overlayZIndex }}
+    >
       <div
         role="dialog"
         aria-modal="true"
