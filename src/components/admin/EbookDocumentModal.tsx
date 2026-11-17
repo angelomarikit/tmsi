@@ -88,9 +88,14 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
           pdfFile,
           coverFile,
         })
-        toast.success('Saved to Supabase', {
-          description: `${saved.legacy_slug} · ${saved.pdf_path}`,
-        })
+        toast.success(
+          saved.updatedExisting ? 'Updated existing eBook in Supabase' : 'Saved to Supabase',
+          {
+            description: saved.updatedExisting
+              ? `${saved.legacy_slug} already existed — PDF, cover, and metadata were refreshed.`
+              : `${saved.legacy_slug} · ${saved.pdf_path}`,
+          },
+        )
       } else if (initial) {
         await updateEbookDocument(initial.legacySlug, {
           title,
@@ -127,6 +132,12 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
             </h2>
             <p className="mt-1 text-xs text-ink/65">
               Slug: <code className="text-[10px]">{slugPreview}</code>
+              {mode === 'create' ? (
+                <span className="mt-0.5 block text-[10px] text-ink/50">
+                  If this slug already exists in the table, upload will update that row instead of
+                  creating a duplicate.
+                </span>
+              ) : null}
             </p>
           </div>
           <button

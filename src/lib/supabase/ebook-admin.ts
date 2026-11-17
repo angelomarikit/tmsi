@@ -1,5 +1,21 @@
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { updateEbookAfterUpload, uploadPrivateDocument, uploadPublicAssetFile } from '@/lib/supabase/cms-upload'
+import type { PostgrestError } from '@supabase/supabase-js'
+
+function formatEbookSaveError(error: PostgrestError, legacySlug: string): Error {
+  const code = error.code ?? ''
+  const msg = error.message ?? ''
+  if (
+    code === '23505' ||
+    /duplicate key|unique constraint|already exists/i.test(msg) ||
+    (error as PostgrestError & { status?: number }).status === 409
+  ) {
+    return new Error(
+      `An eBook with slug “${legacySlug}” is already in the catalog. Close this dialog, find that row in the table, and use Edit (or row PDF / Cover) instead of Upload new.`,
+    )
+  }
+  return new Error(msg || 'Save failed')
+}
 
 export function slugifyEbookTitle(title: string) {
   return title
@@ -116,12 +132,34 @@ export async function createEbookDocument(input: EbookDocumentInput) {
   const rights_confirmed = input.uiStatus === 'live'
   const pdf_path = `ebooks/${legacy_slug}.pdf`
 
+  const { data: existing, error: readErr } = await supabase
+    .from('ebooks')
+    .select('id, legacy_slug')
+    .eq('legacy_slug', legacy_slug)
+    .maybeSingle()
+  if (readErr) throw readErr
+
   await uploadPrivateDocument(pdf_path, input.pdfFile)
 
   let cover_path: string | null = null
   if (input.coverFile) {
     const coverStorage = `ebooks/covers/${legacy_slug}.jpg`
     cover_path = await uploadPublicAssetFile(coverStorage, input.coverFile)
+  }
+
+  if (existing) {
+    const patch: Record<string, unknown> = {
+      title: input.title.trim(),
+      description: input.description.trim() || null,
+      publication_status,
+      rights_confirmed,
+      pdf_path,
+    }
+    if (cover_path) patch.cover_path = cover_path
+
+    const { error } = await supabase.from('ebooks').update(patch).eq('legacy_slug', legacy_slug)
+    if (error) throw formatEbookSaveError(error, legacy_slug)
+    return { legacy_slug, pdf_path, cover_path, updatedExisting: true as const }
   }
 
   const { data: maxRow } = await supabase
@@ -143,8 +181,8 @@ export async function createEbookDocument(input: EbookDocumentInput) {
     cover_path,
     sort_order,
   })
-  if (error) throw error
-  return { legacy_slug, pdf_path, cover_path }
+  if (error) throw formatEbookSaveError(error, legacy_slug)
+  return { legacy_slug, pdf_path, cover_path, updatedExisting: false as const }
 }
 
 export async function updateEbookDocument(legacySlug: string, input: EbookDocumentInput) {
@@ -179,7 +217,7 @@ export async function updateEbookDocument(legacySlug: string, input: EbookDocume
       description: input.description.trim() || null,
     })
     .eq('legacy_slug', legacySlug)
-  if (error) throw error
+  if (error) throw formatEbookSaveError(error, legacySlug)
 }
 
 export async function deleteEbookByLegacySlug(legacySlug: string) {
