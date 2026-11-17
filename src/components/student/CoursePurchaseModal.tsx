@@ -83,6 +83,8 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
 
   if (!open) return null
 
+  const catalogEmpty = programs.length === 0
+
   return createPortal(
     <div
       className="fixed inset-0 z-[250] flex items-start justify-center overflow-y-auto bg-black/45 p-4 pt-8"
@@ -106,6 +108,12 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
           </button>
         </div>
 
+        {catalogEmpty ? (
+          <p className="px-5 pb-6 text-center text-sm text-ink/75">
+            No published courses yet. Close this window and check the catalogue later, or contact the
+            registrar.
+          </p>
+        ) : (
         <div className="grid gap-6 p-5 lg:grid-cols-[1.1fr_0.9fr]">
           <form id={formId} className="space-y-5" onSubmit={onSubmit} encType="multipart/form-data">
             <label className="block text-xs font-medium text-ink">
@@ -128,7 +136,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
 
             <button
               type="submit"
-              disabled={busy || !session}
+              disabled={busy || !session || !selected}
               className="btn-gloss-green flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               <Send className="h-4 w-4" aria-hidden />
@@ -155,6 +163,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
             </p>
           </div>
         </div>
+        )}
       </div>
     </div>,
     document.body,

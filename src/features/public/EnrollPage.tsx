@@ -15,33 +15,49 @@ export function EnrollPage() {
   const { session, loading: authLoading } = useStaff()
   const [params] = useSearchParams()
   const prefill = params.get('program')
-  const [slug, setSlug] = useState(
-    () =>
-      (prefill && programs.some((p) => p.slug === prefill)
-        ? prefill
-        : programs[0]?.slug) as string,
-  )
+  const [slug, setSlug] = useState(() => {
+    if (prefill && programs.some((p) => p.slug === prefill)) return prefill
+    return programs[0]?.slug ?? ''
+  })
   const [busy, setBusy] = useState(false)
   const [submittedRef, setSubmittedRef] = useState<string | null>(null)
 
   useEffect(() => {
     if (prefill && programs.some((p) => p.slug === prefill)) {
       setSlug(prefill)
+      return
     }
-  }, [prefill, programs])
+    if (slug && !programs.some((p) => p.slug === slug) && programs[0]?.slug) {
+      setSlug(programs[0].slug)
+    }
+    if (!slug && programs[0]?.slug) {
+      setSlug(programs[0].slug)
+    }
+  }, [prefill, programs, slug])
 
-  const selected = programs.find((p) => p.slug === slug) ?? programs[0]
+  const selected = programs.find((p) => p.slug === slug) ?? programs[0] ?? null
+  const catalogEmpty = programs.length === 0
 
   if (!authLoading && session) {
     const targetSlug =
-      prefill && programs.some((p) => p.slug === prefill) ? prefill : slug
-    return <Navigate to={`/dashboard?purchase=${encodeURIComponent(targetSlug)}`} replace />
+      prefill && programs.some((p) => p.slug === prefill)
+        ? prefill
+        : slug && programs.some((p) => p.slug === slug)
+          ? slug
+          : ''
+    const dashboardTo =
+      targetSlug.length > 0 ? `/dashboard?purchase=${encodeURIComponent(targetSlug)}` : '/dashboard'
+    return <Navigate to={dashboardTo} replace />
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!session) {
       toast.error('Create an account or sign in before submitting enrollment')
+      return
+    }
+    if (!selected) {
+      toast.error('No published courses available yet — check the catalogue later')
       return
     }
 
@@ -115,6 +131,12 @@ export function EnrollPage() {
         </div>
       ) : null}
 
+      {catalogEmpty ? (
+        <div className="mx-auto max-w-lg px-4 py-6">
+          <EnrollEmptyState />
+        </div>
+      ) : null}
+
       {submittedRef ? (
         <div className="mx-auto max-w-lg px-4 py-6">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center">
@@ -131,6 +153,7 @@ export function EnrollPage() {
         </div>
       ) : null}
 
+      {!catalogEmpty ? (
       <section className="mx-auto grid max-w-[1440px] gap-8 px-4 py-8 lg:grid-cols-[1.1fr_0.9fr] sm:px-6">
         <form
           id="leap-enroll-form"
@@ -172,7 +195,7 @@ export function EnrollPage() {
 
           <button
             type="submit"
-            disabled={busy || !session}
+            disabled={busy || !session || !selected}
             className="btn-gloss-green flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             <Send className="h-4 w-4" aria-hidden />
@@ -181,6 +204,7 @@ export function EnrollPage() {
         </form>
 
         <div className="space-y-4">
+          {selected ? (
           <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-white p-5 text-center shadow">
             <p className="text-xs font-medium uppercase tracking-wide text-ink/70">Program Fee</p>
             <p className="font-display text-4xl font-semibold text-forest">
@@ -188,8 +212,9 @@ export function EnrollPage() {
             </p>
             <p className="mt-1 text-sm text-ink/80">{selected.subtitle}</p>
           </div>
+          ) : null}
           <PaymentProofSection
-            expectedAmountLabel={formatPhp(selected.feePhp)}
+            expectedAmountLabel={selected ? formatPhp(selected.feePhp) : '—'}
             formId="leap-enroll-form"
           />
           <p className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
@@ -199,7 +224,28 @@ export function EnrollPage() {
           </p>
         </div>
       </section>
+      ) : null}
     </>
+  )
+}
+
+function EnrollEmptyState() {
+  return (
+    <div className="rounded-xl border border-dashed border-gold/45 bg-white px-5 py-8 text-center">
+      <p className="font-semibold text-forest">No courses open for enrollment yet</p>
+      <p className="mt-2 text-sm text-ink/75">
+        New programs are added by the academy. Browse the catalogue or return home — you can refresh
+        this page when courses are published.
+      </p>
+      <p className="mt-4 flex flex-wrap justify-center gap-4 text-sm">
+        <Link to="/courses" className="font-semibold text-forest underline">
+          Browse catalogue
+        </Link>
+        <Link to="/" className="font-semibold text-forest underline">
+          Home
+        </Link>
+      </p>
+    </div>
   )
 }
 
