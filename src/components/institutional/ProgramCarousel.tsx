@@ -2,6 +2,7 @@ import { CarouselProgramCard } from '@/components/institutional/CarouselProgramC
 import { LeapProgramsSectionHeader } from '@/components/institutional/LeapProgramsSectionHeader'
 import type { LeapProgram } from '@/data/programs'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import {
   useCallback,
   useEffect,
@@ -39,8 +40,10 @@ export function ProgramCarousel({ programs }: ProgramCarouselProps) {
     () => programs.filter((p) => p.featuredInCarousel),
     [programs],
   )
+  /** New admin courses default to not featured — show all published courses when none are flagged. */
+  const carouselPrograms = featured.length > 0 ? featured : programs
   const visibleCount = useCarouselVisibleCount()
-  const maxIndex = Math.max(0, featured.length - visibleCount)
+  const maxIndex = Math.max(0, carouselPrograms.length - visibleCount)
   const pageCount = maxIndex + 1
 
   const [index, setIndex] = useState(0)
@@ -62,7 +65,7 @@ export function ProgramCarousel({ programs }: ProgramCarouselProps) {
 
   useLayoutEffect(() => {
     measureStep()
-  }, [measureStep, featured.length, visibleCount])
+  }, [measureStep, carouselPrograms.length, visibleCount])
 
   useEffect(() => {
     window.addEventListener('resize', measureStep)
@@ -87,43 +90,55 @@ export function ProgramCarousel({ programs }: ProgramCarouselProps) {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6">
         <LeapProgramsSectionHeader id="leap-programs-heading" />
 
-        <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-5">
-          <button
-            type="button"
-            className="btn-gloss-green flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gold/80 text-white shadow-md transition-opacity hover:brightness-110 sm:h-12 sm:w-12"
-            aria-label="Previous programs"
-            onClick={goPrev}
-          >
-            <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
-          </button>
-
-          <div
-            ref={viewportRef}
-            className="min-h-[200px] w-full min-w-0 flex-1 overflow-hidden"
-          >
-            <div
-              ref={trackRef}
-              className="flex gap-3.5 transition-transform duration-300 ease-out will-change-transform"
-              style={{ transform: `translateX(-${translateX}px)` }}
+        {carouselPrograms.length === 0 ? (
+          <p className="py-10 text-center text-sm text-ink/70">
+            LEAP courses will appear here when they are published.{' '}
+            <Link to="/courses" className="font-medium text-forest underline">
+              Browse the catalogue
+            </Link>
+          </p>
+        ) : (
+          <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-5">
+            <button
+              type="button"
+              className="btn-gloss-green flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gold/80 text-white shadow-md transition-opacity hover:brightness-110 sm:h-12 sm:w-12"
+              aria-label="Previous programs"
+              onClick={goPrev}
+              disabled={carouselPrograms.length <= visibleCount}
             >
-              {featured.map((program) => (
-                <div key={program.id} data-carousel-card className="shrink-0">
-                  <CarouselProgramCard program={program} />
-                </div>
-              ))}
+              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
+            </button>
+
+            <div
+              ref={viewportRef}
+              className="min-h-[200px] w-full min-w-0 flex-1 overflow-hidden"
+            >
+              <div
+                ref={trackRef}
+                className="flex gap-3.5 transition-transform duration-300 ease-out will-change-transform"
+                style={{ transform: `translateX(-${translateX}px)` }}
+              >
+                {carouselPrograms.map((program) => (
+                  <div key={program.id} data-carousel-card className="shrink-0">
+                    <CarouselProgramCard program={program} />
+                  </div>
+                ))}
+              </div>
             </div>
+
+            <button
+              type="button"
+              className="btn-gloss-green flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gold/80 text-white shadow-md transition-opacity hover:brightness-110 sm:h-12 sm:w-12"
+              aria-label="Next programs"
+              onClick={goNext}
+              disabled={carouselPrograms.length <= visibleCount}
+            >
+              <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
+            </button>
           </div>
+        )}
 
-          <button
-            type="button"
-            className="btn-gloss-green flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-gold/80 text-white shadow-md transition-opacity hover:brightness-110 sm:h-12 sm:w-12"
-            aria-label="Next programs"
-            onClick={goNext}
-          >
-            <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
-          </button>
-        </div>
-
+        {carouselPrograms.length > 0 ? (
         <div
           className="mt-6 flex justify-center gap-2.5"
           role="tablist"
@@ -148,6 +163,7 @@ export function ProgramCarousel({ programs }: ProgramCarouselProps) {
             )
           })}
         </div>
+        ) : null}
       </div>
     </section>
   )

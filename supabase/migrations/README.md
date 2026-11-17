@@ -46,6 +46,7 @@
 40. `040_course_upload_diagnostics.sql` (admin probe shows `is_staff`, roles, missing RPC — fixes “why upload fails”)
 41. `041_admin_upload_clarify.sql` (`is_admin` = super_admin upload; friendlier RPC errors)
 42. `041_grant_super_admin_example.sql` (template SQL by email — edit email, never paste placeholder UUIDs)
+43. `042_feature_published_programs_carousel.sql` (homepage carousel: flag published courses as featured)
 
 ## LEAP course materials (checklist)
 

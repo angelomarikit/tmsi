@@ -36,6 +36,7 @@ export async function createNewCourse(payload: CreateCoursePayload) {
       fee_php: payload.feePhp,
       publication_status: 'published',
       active: true,
+      featured_in_carousel: true,
     })
     .select('id, slug')
     .single()
@@ -59,7 +60,7 @@ export async function publishCourse(programId: string) {
   if (!supabase) throw new Error('Supabase is not configured')
   const { error } = await supabase
     .from('programs')
-    .update({ publication_status: 'published', active: true })
+    .update({ publication_status: 'published', active: true, featured_in_carousel: true })
     .eq('id', programId)
   if (error) throw error
 }
