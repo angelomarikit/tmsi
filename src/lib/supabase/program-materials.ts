@@ -245,7 +245,7 @@ async function registerProgramMaterialRow(
   throw new Error(`${label}: could not register file in database (${directMsg}; RPC: ${rpcMsg}).${staffHint}`)
 }
 
-/** Upload exactly one PDF/video — used by Admin → Manage (one-by-one flow). */
+/** Upload one PDF/video (Admin → Manage can call this in a loop for multi-select). */
 export async function uploadSingleProgramMaterial(
   programId: string,
   programSlug: string,

@@ -133,7 +133,7 @@ export function CourseMaterialsPreviewModal({
               className="mt-4 inline-block rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white no-underline"
               onClick={onClose}
             >
-              Upload PDFs (one at a time)
+              Upload PDFs
             </Link>
           </div>
         ) : (

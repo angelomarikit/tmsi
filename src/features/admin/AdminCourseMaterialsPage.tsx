@@ -17,11 +17,12 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
+type SavedFile = { name: string; materialId: string }
 type UploadStep =
   | { phase: 'idle' }
-  | { phase: 'picked'; name: string; sizeKb: number }
-  | { phase: 'uploading'; name: string }
-  | { phase: 'done'; name: string; materialId: string }
+  | { phase: 'picked'; names: string[] }
+  | { phase: 'uploading'; name: string; index: number; total: number }
+  | { phase: 'done'; saved: SavedFile[]; failed?: string[] }
   | { phase: 'error'; message: string }
 
 export function AdminCourseMaterialsPage() {
@@ -65,46 +66,75 @@ export function AdminCourseMaterialsPage() {
       return
     }
 
-    const raw = list?.[0]
-    if (!raw) {
+    const picked = Array.from(list ?? [])
+    if (picked.length === 0) {
       const msg =
-        'No file received from the picker (often caused by file type filter). Try again — all file types are allowed now.'
+        'No files received from the picker. Try again — you can select several PDFs or videos at once.'
       setStep({ phase: 'error', message: msg })
       toast.error(msg)
       return
     }
 
-    setStep({
-      phase: 'picked',
-      name: raw.name,
-      sizeKb: Math.round(raw.size / 1024),
-    })
-    toast.message(`Selected: ${raw.name} — uploading…`)
+    setStep({ phase: 'picked', names: picked.map((f) => f.name) })
+    toast.message(
+      picked.length === 1
+        ? `Selected: ${picked[0].name} — uploading…`
+        : `Selected ${picked.length} files — uploading one by one…`,
+    )
 
-    const normalized = await normalizeCourseMaterialFile(raw)
-    const file = normalized ?? raw
-    if (!isAllowedCourseMaterial(file)) {
-      const reason = courseMaterialRejectionReason(raw) ?? 'Not a PDF or video'
-      setStep({ phase: 'error', message: reason })
-      toast.error(reason)
-      return
-    }
-    if (normalized && raw.name !== file.name) {
-      toast.message(`Renamed for storage: ${file.name}`)
+    const saved: SavedFile[] = []
+    const failed: string[] = []
+    let listDirty = false
+
+    for (let i = 0; i < picked.length; i++) {
+      const raw = picked[i]
+      const normalized = await normalizeCourseMaterialFile(raw)
+      const file = normalized ?? raw
+      if (!isAllowedCourseMaterial(file)) {
+        const reason = courseMaterialRejectionReason(raw) ?? 'Not a PDF or video'
+        failed.push(`${raw.name}: ${reason}`)
+        continue
+      }
+      if (normalized && raw.name !== file.name) {
+        toast.message(`Renamed for storage: ${file.name}`)
+      }
+
+      setStep({ phase: 'uploading', name: file.name, index: i + 1, total: picked.length })
+      try {
+        const row = await uploadSingleProgramMaterial(programId, slug, file)
+        saved.push({ name: row.label, materialId: row.id })
+        listDirty = true
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Upload failed'
+        failed.push(`${file.name}: ${msg}`)
+      }
     }
 
-    setStep({ phase: 'uploading', name: file.name })
-    try {
-      const row = await uploadSingleProgramMaterial(programId, slug, file)
-      setStep({ phase: 'done', name: row.label, materialId: row.id })
-      toast.success(`Uploaded “${row.label}”`)
+    if (listDirty) {
       await refetch()
       void queryClient.invalidateQueries({ queryKey: ['admin', 'program-material-counts'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'course-materials-audit'] })
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Upload failed'
+    }
+
+    if (saved.length === 0) {
+      const msg =
+        failed.length > 0
+          ? `Nothing uploaded:\n${failed.join('\n')}`
+          : 'No files uploaded'
       setStep({ phase: 'error', message: msg })
-      toast.error(msg, { duration: 12_000 })
+      toast.error(failed[0] ?? 'Upload failed', { duration: 12_000 })
+      return
+    }
+
+    setStep({ phase: 'done', saved, failed: failed.length > 0 ? failed : undefined })
+    if (failed.length === 0) {
+      toast.success(
+        saved.length === 1 ? `Uploaded “${saved[0].name}”` : `Uploaded ${saved.length} files`,
+      )
+    } else {
+      toast.warning(`Uploaded ${saved.length} of ${picked.length} — see status for failures`, {
+        duration: 12_000,
+      })
     }
   }
 
@@ -119,8 +149,8 @@ export function AdminCourseMaterialsPage() {
         Step 2 — Upload PDFs · {programTitle}
       </h1>
       <p className="mt-2 max-w-2xl text-sm text-ink/75">
-        Pick <strong>one PDF (or video) at a time</strong>. After you choose a file, status appears below the
-        button.
+        Select <strong>one or more PDFs (or videos)</strong> — hold Ctrl or Shift in the file picker for
+        multiple. Each file is uploaded and listed below.
       </p>
       {programId && slug ? (
         <p className="mt-2 font-mono text-[11px] text-ink/55">
@@ -143,6 +173,7 @@ export function AdminCourseMaterialsPage() {
             <input
               id={fileInputId}
               type="file"
+              multiple
               className="sr-only"
               disabled={!canUpload || busy}
               onChange={(e) => {
@@ -161,7 +192,7 @@ export function AdminCourseMaterialsPage() {
               ) : (
                 <Upload className="h-4 w-4" aria-hidden />
               )}
-              {busy ? 'Uploading…' : 'Choose one PDF / video'}
+              {busy ? 'Uploading…' : 'Choose PDFs / videos'}
             </label>
             <span className="text-xs text-ink/60">
               Storage: <code>private-documents/course-materials/{slug}/</code>
@@ -182,7 +213,7 @@ export function AdminCourseMaterialsPage() {
             ) : materials.length === 0 ? (
               <li className="rounded-lg border border-dashed border-gold/40 bg-white px-4 py-8 text-center text-sm text-ink/60">
                 <FileStack className="mx-auto h-8 w-8 text-gold" aria-hidden />
-                <p className="mt-2">No files in database yet — choose a file above.</p>
+                <p className="mt-2">No files in database yet — choose one or more files above.</p>
               </li>
             ) : (
               materials.map((m) => (
@@ -230,14 +261,14 @@ function UploadStatusPanel({ step }: { step: UploadStep }) {
   if (step.phase === 'idle') {
     return (
       <p className="mt-3 text-xs text-ink/55">
-        Status: waiting for you to pick a file — any file type is accepted; PDFs are detected automatically.
+        Status: waiting for you to pick file(s) — PDFs and videos are detected automatically.
       </p>
     )
   }
   if (step.phase === 'picked') {
     return (
       <p className="mt-3 rounded-lg border border-gold/30 bg-cream px-3 py-2 text-xs text-ink/80">
-        Selected <strong>{step.name}</strong> ({step.sizeKb} KB)…
+        Selected {step.names.length} file{step.names.length === 1 ? '' : 's'}: {step.names.join(', ')}…
       </p>
     )
   }
@@ -245,15 +276,29 @@ function UploadStatusPanel({ step }: { step: UploadStep }) {
     return (
       <p className="mt-3 flex items-center gap-2 rounded-lg border border-forest/25 bg-forest/5 px-3 py-2 text-xs text-forest">
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-        Uploading <strong>{step.name}</strong> to Supabase…
+        Uploading <strong>{step.name}</strong> ({step.index} of {step.total})…
       </p>
     )
   }
   if (step.phase === 'done') {
     return (
-      <p className="mt-3 rounded-lg border border-forest/30 bg-forest/10 px-3 py-2 text-xs text-forest">
-        Saved <strong>{step.name}</strong> — id <code>{step.materialId}</code>
-      </p>
+      <div className="mt-3 space-y-2">
+        <p className="rounded-lg border border-forest/30 bg-forest/10 px-3 py-2 text-xs text-forest">
+          Saved {step.saved.length} file{step.saved.length === 1 ? '' : 's'}:
+        </p>
+        <ul className="space-y-1 text-xs text-forest">
+          {step.saved.map((s) => (
+            <li key={s.materialId}>
+              <strong>{s.name}</strong> — <code>{s.materialId}</code>
+            </li>
+          ))}
+        </ul>
+        {step.failed?.length ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 whitespace-pre-wrap">
+            {step.failed.join('\n')}
+          </p>
+        ) : null}
+      </div>
     )
   }
   return (
