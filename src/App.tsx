@@ -6,9 +6,9 @@ import { AuthPlaceholderPage } from '@/features/auth/AuthPlaceholderPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { StudentRoutes } from '@/features/student/StudentRoutes'
+import { ContactPage } from '@/features/public/ContactPage'
 import {
   AboutPage,
-  ContactPage,
   FaqPage,
   PrivacyPage,
   TermsPage,

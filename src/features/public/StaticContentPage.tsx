@@ -36,17 +36,6 @@ export function AboutPage() {
   )
 }
 
-export function ContactPage() {
-  return (
-    <StaticContentPage title="Contact Us">
-      <p>
-        Institutional contact channels and registrar details will be published after
-        client confirmation in CMS settings.
-      </p>
-    </StaticContentPage>
-  )
-}
-
 export function FaqPage() {
   return (
     <StaticContentPage title="Frequently Asked Questions">

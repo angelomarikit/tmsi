@@ -37,11 +37,11 @@ export function StudentHelpPage() {
       </div>
 
       <p className="mt-6 text-xs text-ink/55">
-        Official contact details are published on the{' '}
+        Email, phone numbers, and the contact form are on the{' '}
         <Link to="/contact" className="text-forest underline">
           Contact
         </Link>{' '}
-        page when available in CMS.
+        page.
       </p>
     </section>
   )
