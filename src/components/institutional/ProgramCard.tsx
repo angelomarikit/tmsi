@@ -20,10 +20,12 @@ export function ProgramCard({ program, layout = 'catalog' }: ProgramCardProps) {
   const coverAlt =
     visualAssets[program.coverAssetKey]?.alt ?? `${program.title} — course cover`
 
+  const isCatalog = layout === 'catalog'
+
   return (
     <article
       className={cn(
-        'overflow-hidden rounded-xl border border-gold/35 bg-white shadow-md',
+        'flex flex-col overflow-hidden rounded-xl border border-gold/35 bg-white shadow-md',
         layout === 'carousel' && 'min-w-[200px] max-w-[220px] flex-shrink-0 sm:min-w-[210px]',
       )}
     >
@@ -32,9 +34,18 @@ export function ProgramCard({ program, layout = 'catalog' }: ProgramCardProps) {
           src={coverSrc}
           alt={coverAlt}
           zoom={Boolean(coverSrc)}
-          className="aspect-[4/3] w-full"
+          zoomScale={isCatalog ? 1.22 : 1.12}
+          className={cn(
+            'w-full',
+            isCatalog ? 'h-[min(42vw,320px)] min-h-[200px] sm:h-64 lg:h-72' : 'aspect-[4/3]',
+          )}
           roundedTop={false}
-          fallback={<CourseCoverPlaceholder assetKey={program.coverAssetKey} className="h-full w-full" />}
+          fallback={
+            <CourseCoverPlaceholder
+              assetKey={program.coverAssetKey}
+              className="h-full min-h-[inherit] w-full !aspect-auto"
+            />
+          }
         />
         <div className="px-3 py-3 text-center">
           <p className="font-display text-lg font-semibold text-forest">{program.title}</p>

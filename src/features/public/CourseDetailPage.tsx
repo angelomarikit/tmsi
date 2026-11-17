@@ -32,30 +32,30 @@ export function CourseDetailPage() {
     visualAssets[program.coverAssetKey]?.alt ?? `${program.title} — course cover`
 
   return (
-    <article className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-      <div className="overflow-hidden rounded-2xl border border-gold/35 bg-white shadow-lg">
+    <>
+      <div className="w-full border-b border-gold/30 bg-forest/5">
         <ProgramCoverFrame
           src={coverSrc}
           alt={coverAlt}
           zoom={Boolean(coverSrc)}
-          className="h-56 w-full sm:h-80 lg:h-96"
+          zoomScale={1.18}
+          className="h-[min(52vh,480px)] min-h-[240px] w-full sm:min-h-[320px]"
           roundedTop={false}
           fallback={
             <CourseCoverPlaceholder
               assetKey={program.coverAssetKey}
-              className="h-full w-full min-h-56 sm:min-h-80"
+              className="h-full min-h-[inherit] w-full !aspect-auto"
             />
           }
         />
-        <div className="p-6 sm:p-8">
+      </div>
+      <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="rounded-2xl border border-gold/35 bg-white p-6 shadow-lg sm:p-8">
           <p className="text-sm font-semibold text-gold">{program.code}</p>
           <h1 className="font-display text-3xl font-semibold text-forest">{program.subtitle}</h1>
           <p className="mt-4 text-sm leading-relaxed text-ink/85">{program.description}</p>
           <p className="mt-6 text-lg font-semibold text-ink">
             Program fee: {formatPhp(program.feePhp)}
-          </p>
-          <p className="mt-2 text-xs text-ink/60">
-            Live fee will reflect admin-published pricing after database connection.
           </p>
           <p className="mt-2 text-xs text-ink/65">
             Course modules are published by TMSI–LAPS after your enrollment is approved. Files are not
@@ -73,7 +73,7 @@ export function CourseDetailPage() {
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>
-      </div>
-    </article>
+      </article>
+    </>
   )
 }

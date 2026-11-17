@@ -9,6 +9,8 @@ type ProgramCoverFrameProps = {
   roundedTop?: boolean
   /** Zoom slightly to strip poster letterboxing (catalogue posters) */
   zoom?: boolean
+  /** Scale when zoom is true (default 1.12) */
+  zoomScale?: number
 }
 
 /**
@@ -21,6 +23,7 @@ export function ProgramCoverFrame({
   className,
   roundedTop = true,
   zoom = false,
+  zoomScale = 1.12,
 }: ProgramCoverFrameProps) {
   const [loadFailed, setLoadFailed] = useState(false)
 
@@ -29,7 +32,7 @@ export function ProgramCoverFrame({
   }, [src])
 
   const imgStyle: CSSProperties | undefined = zoom
-    ? { transform: 'scale(1.12)', transformOrigin: 'center center' }
+    ? { transform: `scale(${zoomScale})`, transformOrigin: 'center center' }
     : undefined
 
   const showImg = Boolean(src) && !loadFailed
@@ -37,7 +40,7 @@ export function ProgramCoverFrame({
   return (
     <div
       className={cn(
-        'relative w-full overflow-hidden bg-cream',
+        'relative w-full overflow-hidden bg-forest/10',
         roundedTop && 'rounded-t-[12px]',
         className,
       )}

@@ -29,7 +29,8 @@ export function CarouselProgramCard({ program, className }: CarouselProgramCardP
         <ProgramCoverFrame
           src={src}
           zoom={Boolean(posterSrc && src === posterSrc)}
-          className="h-[118px] w-full shrink-0 sm:h-[124px] lg:h-[130px]"
+          zoomScale={1.15}
+          className="h-[128px] w-full shrink-0 sm:h-[136px] lg:h-[144px]"
           roundedTop={false}
           fallback={
             <CourseCoverPlaceholder
