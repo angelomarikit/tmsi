@@ -6,6 +6,7 @@ import {
   updateEbookDocument,
 } from '@/lib/supabase/ebook-admin'
 import { useStaff } from '@/contexts/StaffContext'
+import { userFacingError } from '@/lib/user-facing-message'
 import { supabaseConfigured } from '@/lib/supabase/client'
 import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
@@ -65,11 +66,11 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (!supabaseConfigured) {
-      toast.error('Supabase is not configured in .env.local')
+      toast.error('Upload is unavailable on this site build. Contact your technical administrator.')
       return
     }
     if (!session || !isStaff) {
-      toast.error('Admin sign-in required to upload to Supabase')
+      toast.error('Admin sign-in required to upload files.')
       return
     }
 
@@ -89,11 +90,11 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
           coverFile,
         })
         toast.success(
-          saved.updatedExisting ? 'Updated existing eBook in Supabase' : 'Saved to Supabase',
+          saved.updatedExisting ? 'Updated existing eBook' : 'eBook saved',
           {
             description: saved.updatedExisting
-              ? `${saved.legacy_slug} already existed — PDF, cover, and metadata were refreshed.`
-              : `${saved.legacy_slug} · ${saved.pdf_path}`,
+              ? `${saved.legacy_slug} already existed — PDF, cover, and details were refreshed.`
+              : saved.legacy_slug,
           },
         )
       } else if (initial) {
@@ -104,14 +105,14 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
           pdfFile,
           coverFile,
         })
-        toast.success('Updated in Supabase', {
-          description: `ebooks · ${initial.legacySlug}`,
+        toast.success('eBook updated', {
+          description: initial.legacySlug,
         })
       }
       onSaved()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Save failed')
+      toast.error(userFacingError(err, 'Save failed. Please try again.'))
     } finally {
       setBusy(false)
     }
@@ -153,20 +154,15 @@ export function EbookDocumentModal({ open, mode, initial, onClose, onSaved }: Pr
         <form className="space-y-4 px-5 py-4" onSubmit={onSubmit}>
           {!supabaseConfigured ? (
             <p className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-              Add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in{' '}
-              <code>web/.env.local</code>. Without Supabase, nothing is stored in the cloud.
+              Online upload is not available on this build. Contact your technical administrator.
             </p>
           ) : !session || !isStaff ? (
             <p className="rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-              Sign in as admin before uploading. Files go to your Supabase project (Storage +{' '}
-              <code>ebooks</code> table).
+              Sign in as admin before uploading PDFs and cover images.
             </p>
           ) : (
             <p className="rounded-md border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-xs text-emerald-950">
-              Saves to <strong>Supabase Storage</strong>: PDF in{' '}
-              <code className="text-[10px]">private-documents/ebooks/…</code>, cover in{' '}
-              <code className="text-[10px]">public-assets/ebooks/covers/…</code>. Row inserted or
-              updated in <code className="text-[10px]">public.ebooks</code>.
+              PDF and cover are stored securely online. The catalog updates when you save.
             </p>
           )}
 

@@ -1,3 +1,4 @@
+import { SERVICE_UNAVAILABLE_MESSAGE } from '@/lib/user-facing-message'
 import { getSupabaseClient, supabaseConfigured } from '@/lib/supabase/client'
 import type { Session } from '@supabase/supabase-js'
 import {
@@ -140,7 +141,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const supabase = getSupabaseClient()
-    if (!supabase) throw new Error('Supabase is not configured')
+    if (!supabase) throw new Error(SERVICE_UNAVAILABLE_MESSAGE)
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     if (data.session) setSession(data.session)
@@ -180,7 +181,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string, fullName: string): Promise<SignUpResult> => {
       const supabase = getSupabaseClient()
-      if (!supabase) throw new Error('Supabase is not configured')
+      if (!supabase) throw new Error(SERVICE_UNAVAILABLE_MESSAGE)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,

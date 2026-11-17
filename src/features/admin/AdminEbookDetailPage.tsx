@@ -63,8 +63,8 @@ export function AdminEbookDetailPage() {
             Upload & publish
           </h2>
           <p className="mt-2 text-xs text-ink/70">
-            PDF → <code className="text-[10px]">private-documents/ebooks/</code>. Cover → public
-            bucket. Confirm rights before Publish so the public download gate opens.
+            Upload the PDF and optional cover, then confirm rights before Publish so the public
+            download button works.
           </p>
           <div className={cn('mt-4', !isStaff && 'pointer-events-none opacity-50')}>
             <EbookAdminActions

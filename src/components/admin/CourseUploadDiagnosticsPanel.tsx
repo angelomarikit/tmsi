@@ -21,9 +21,7 @@ function Panel({ diag }: { diag: CourseUploadDiagnostics }) {
   if (diag.ok) {
     return (
       <div className="mt-3 rounded-lg border border-forest/25 bg-forest/5 px-4 py-3 text-xs text-forest">
-        <strong>Upload allowed.</strong> Logged in as admin
-        {diag.roleSlugs.length > 0 ? ` (${diag.roleSlugs.join(', ')})` : ' (super_admin)'}.
-        {diag.leapMaterialRows != null ? ` ${diag.leapMaterialRows} material row(s) in DB.` : null}
+        <strong>Upload allowed.</strong> You are signed in with admin upload access.
       </div>
     )
   }
@@ -32,46 +30,27 @@ function Panel({ diag }: { diag: CourseUploadDiagnostics }) {
 
   return (
     <div className="mt-3 rounded-lg border border-red-300/70 bg-red-50 px-4 py-3 text-xs text-red-950">
-      <p className="font-semibold">Why PDF upload is blocked</p>
-      <p className="mt-1 text-[11px]">
-        There is <strong>no separate “staff” role</strong>. Course PDFs require{' '}
-        <strong>super_admin</strong> (or registrar / content_manager) in Supabase{' '}
-        <code>user_roles</code>.
-      </p>
+      <p className="font-semibold">Upload is blocked for this login</p>
       <ul className="mt-2 list-inside list-disc space-y-1">
         {!diag.isAdminDb ? (
-          <li>
-            This login is not linked to <strong>super_admin</strong> in the database (RLS blocks Storage +
-            PDF rows).
-          </li>
+          <li>This account is not authorized to upload course files on the server.</li>
         ) : null}
         {!diag.hasRegisterRpc ? (
-          <li>
-            <code>staff_register_program_material</code> RPC missing — run migrations 035, 038, 041.
-          </li>
+          <li>Server course-upload setup is incomplete — contact your technical administrator.</li>
         ) : null}
-        {diag.probeError ? <li>Probe: {diag.probeError}</li> : null}
+        {diag.probeError ? <li>Server check failed. Try signing out and back in.</li> : null}
         {hasSuperAdminSlug && !diag.isAdminDb ? (
-          <li>Roles listed ({diag.roleSlugs.join(', ')}) but admin check failed — run migration 041.</li>
+          <li>Roles were found for this user but upload permission was not granted.</li>
         ) : null}
         {diag.email ? (
           <li>
             Login email: <strong>{diag.email}</strong>
           </li>
         ) : null}
-        {diag.uid ? (
-          <li>
-            User id: <code className="select-all">{diag.uid}</code>
-          </li>
-        ) : null}
       </ul>
-      {diag.fixSteps.length > 0 ? (
-        <ol className="mt-3 max-h-48 list-inside list-decimal space-y-2 overflow-y-auto whitespace-pre-wrap font-mono text-[10px]">
-          {diag.fixSteps.map((step, i) => (
-            <li key={`${i}-${step.slice(0, 40)}`}>{step}</li>
-          ))}
-        </ol>
-      ) : null}
+      <p className="mt-3 text-[11px] text-red-900/90">
+        Contact your technical administrator if you need upload access.
+      </p>
     </div>
   )
 }

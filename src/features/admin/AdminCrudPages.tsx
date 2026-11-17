@@ -128,7 +128,7 @@ export function AdminApplicationsPage() {
   return (
     <AdminDataTable
       title="Applications"
-      description="LEAP enrollment references. Staff login required to review rows blocked by RLS."
+      description="LEAP enrollment references. Staff login required to review applications."
       columns={[
         { key: 'ref', header: 'Reference', render: (r) => r.reference_code ?? '—' },
         {
@@ -303,7 +303,7 @@ export function AdminCoursesPage() {
         isLoading
           ? 'Loading…'
           : programsQueryError
-            ? 'Could not load courses from Supabase — sign in as staff and refresh.'
+            ? 'Could not load courses — sign in as staff and refresh.'
             : 'No courses yet — use Create course to add your first program.'
       }
     />
@@ -523,7 +523,7 @@ export function AdminSettingsPage() {
       ]}
       rows={rows}
       getRowKey={(r) => r.key}
-      emptyMessage={isLoading ? 'Loading…' : 'No institution settings rows — run migration 009.'}
+      emptyMessage={isLoading ? 'Loading…' : 'No institution settings yet.'}
     />
   )
 }

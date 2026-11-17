@@ -8,6 +8,7 @@ import { formatPhp } from '@/lib/utils'
 import { GraduationCap, Send, ShieldCheck } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 export function EnrollPage() {
@@ -73,7 +74,7 @@ export function EnrollPage() {
     try {
       const programRow = await fetchProgramBySlug(slug)
       if (!programRow?.id) {
-        throw new Error('Program not in database — run migrations 009/seed first')
+        throw new Error('This course is not available for enrollment yet.')
       }
 
       const result = await submitLeapEnrollment({
@@ -97,7 +98,7 @@ export function EnrollPage() {
       })
       form.reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Submission failed')
+      toast.error(userFacingError(err, 'Submission failed. Please try again or contact the registrar.'))
     } finally {
       setBusy(false)
     }

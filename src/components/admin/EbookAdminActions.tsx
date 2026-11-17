@@ -45,8 +45,8 @@ export function EbookAdminActions({
             await updateEbookAfterUpload(legacySlug, {
               pdf_storage_path: path,
             })
-            toast.success('PDF stored in Supabase', {
-              description: `private-documents/${path}`,
+            toast.success('PDF saved', {
+              description: legacySlug,
               action: {
                 label: 'Set Live',
                 onClick: () => {

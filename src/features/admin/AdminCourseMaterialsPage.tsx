@@ -15,6 +15,7 @@ import { FileStack, Loader2, Trash2, Upload } from 'lucide-react'
 import { useId, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 type SavedFile = { name: string; materialId: string }
@@ -122,7 +123,7 @@ export function AdminCourseMaterialsPage() {
           ? `Nothing uploaded:\n${failed.join('\n')}`
           : 'No files uploaded'
       setStep({ phase: 'error', message: msg })
-      toast.error(failed[0] ?? 'Upload failed', { duration: 12_000 })
+      toast.error(userFacingError(new Error(failed[0]), 'Upload failed'), { duration: 12_000 })
       return
     }
 
@@ -194,16 +195,14 @@ export function AdminCourseMaterialsPage() {
               )}
               {busy ? 'Uploading…' : 'Choose PDFs / videos'}
             </label>
-            <span className="text-xs text-ink/60">
-              Storage: <code>private-documents/course-materials/{slug}/</code>
-            </span>
+            <span className="text-xs text-ink/60">Course folder: {slug}</span>
           </div>
 
           <UploadStatusPanel step={step} />
 
           {listError ? (
             <p className="mt-4 text-sm text-red-800">
-              {(listError as Error).message} — confirm migration 012.
+              Could not load saved files. Sign in as admin and refresh.
             </p>
           ) : null}
 
@@ -240,7 +239,7 @@ export function AdminCourseMaterialsPage() {
                           await refetch()
                           void queryClient.invalidateQueries({ queryKey: ['admin', 'program-material-counts'] })
                         } catch (err) {
-                          toast.error(err instanceof Error ? err.message : 'Delete failed')
+                          toast.error(userFacingError(err, 'Delete failed'))
                         }
                       }}
                     >
@@ -295,7 +294,7 @@ function UploadStatusPanel({ step }: { step: UploadStep }) {
         </ul>
         {step.failed?.length ? (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950 whitespace-pre-wrap">
-            {step.failed.join('\n')}
+            {step.failed.map((line) => userFacingError(new Error(line), 'Upload failed')).join('\n')}
           </p>
         ) : null}
       </div>

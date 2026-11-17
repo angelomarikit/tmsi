@@ -27,43 +27,39 @@ export function CourseMaterialsAuditBanner() {
   const hints: string[] = []
 
   if (!supabaseConfigured) {
-    problems.push('Supabase env vars are missing on this build — uploads cannot reach the database.')
-    hints.push('Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY on Vercel/hosting, then redeploy.')
+    problems.push('This site build is not connected to the online database.')
+    hints.push('Update hosting settings and redeploy, or contact your technical administrator.')
   }
 
   if (!session) {
     problems.push('You are not signed in — course PDFs will not save.')
-    hints.push('Use Sign in as admin in the header (staff account with user_roles).')
+    hints.push('Sign in with an admin account from the header.')
   }
 
   if (session && !isStaff) {
-    problems.push('Signed in, but this account has no staff role in the app.')
-    hints.push('Add your auth user to user_roles in Supabase (super_admin, registrar, or content_manager).')
+    problems.push('Signed in, but this account does not have admin upload access.')
+    hints.push('Use an account with registrar or content manager access.')
   }
 
   if (audit.data?.table.programFetchError) {
-    problems.push(`Programs query failed: ${audit.data.table.programFetchError}`)
+    problems.push('Could not load the course list from the server.')
   }
 
   if (audit.data?.probe.staffDb === false) {
-    problems.push('Database says this user is not staff — Storage and content_items writes are blocked (RLS).')
+    problems.push('The server rejected upload permissions for this login.')
   }
 
   if (audit.data?.probe.staffDbError && audit.data.probe.staffDb !== false) {
-    problems.push(`Staff check: ${audit.data.probe.staffDbError}`)
+    problems.push('Could not verify admin permissions.')
   }
 
   if (audit.data?.probe.probeError) {
-    problems.push(`Materials probe: ${audit.data.probe.probeError}`)
-  }
-
-  for (const h of audit.data?.probe.migrationsHint ?? []) {
-    if (!hints.includes(h)) hints.push(h)
+    problems.push('Course materials upload check failed.')
   }
 
   if (problems.length === 0) return null
 
-  hints.push('Run SQL migrations 011, 012, 035, 036, 038 in Supabase. Use Reset all courses on this page for a clean catalog.')
+  hints.push('If this persists, contact your technical administrator.')
 
   return (
     <div className="mb-4 rounded-lg border border-red-300/60 bg-red-50 px-4 py-3 text-sm text-red-950">

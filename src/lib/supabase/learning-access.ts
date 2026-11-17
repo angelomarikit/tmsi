@@ -28,21 +28,19 @@ export async function fetchMyEnrolledPrograms(): Promise<EnrolledProgram[]> {
 
 export async function fetchLearningMaterials(programId: string): Promise<LearningMaterial[]> {
   const supabase = getSupabaseClient()
-  if (!supabase) throw new Error('Supabase is not configured')
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
   const { data, error } = await supabase.rpc('list_learning_materials_for_program', {
     p_program_id: programId,
   })
   if (error) {
-    throw new Error(
-      `${error.message} — confirm migration 033 (list_learning_materials_for_program) is applied.`,
-    )
+    throw new Error('Could not load course materials. Please try again later.')
   }
   return (data ?? []) as LearningMaterial[]
 }
 
 export async function createMaterialSignedUrl(filePath: string): Promise<string> {
   const supabase = getSupabaseClient()
-  if (!supabase) throw new Error('Supabase is not configured')
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .createSignedUrl(filePath, SIGNED_SECONDS)

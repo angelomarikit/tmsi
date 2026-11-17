@@ -2,7 +2,7 @@ import { DataPrivacyConsentModal } from '@/components/auth/DataPrivacyConsentMod
 import { PaymentProofSection } from '@/components/forms/PaymentProofSection'
 import { TmvsMembershipApplicantFields } from '@/components/forms/TmvsMembershipApplicantFields'
 import { useStaff } from '@/contexts/StaffContext'
-import { supabaseConfigured } from '@/lib/supabase/client'
+import { SERVICE_UNAVAILABLE_MESSAGE, userFacingError } from '@/lib/user-facing-message'
 import { registerAndSubmitTmvsMembership } from '@/lib/supabase/membership-submit'
 import { CheckCircle2, ListOrdered, Send } from 'lucide-react'
 import { useRef, useState, type FormEvent } from 'react'
@@ -26,7 +26,7 @@ const steps = [
 ]
 
 export function MembershipPage() {
-  const { session, loading: authLoading } = useStaff()
+  const { session, loading: authLoading, configured } = useStaff()
   const formRef = useRef<HTMLFormElement>(null)
   const [busy, setBusy] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
@@ -34,8 +34,8 @@ export function MembershipPage() {
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!supabaseConfigured) {
-      toast.error('Supabase is not configured — contact the registrar.')
+    if (!configured) {
+      toast.error(SERVICE_UNAVAILABLE_MESSAGE)
       return
     }
     const data = new FormData(e.currentTarget)
@@ -102,7 +102,7 @@ export function MembershipPage() {
       })
       form.reset()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Submission failed')
+      toast.error(userFacingError(err, 'Submission failed. Please try again or contact the registrar.'))
     } finally {
       setBusy(false)
     }

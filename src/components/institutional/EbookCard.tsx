@@ -1,6 +1,7 @@
 import { EbookCover } from '@/components/institutional/EbookCover'
 import type { EbookRecord } from '@/data/ebooks'
 import { getEbookDownloadUi } from '@/lib/ebook-download-state'
+import { userFacingError, userFacingToastDescription } from '@/lib/user-facing-message'
 import { downloadEbookByPath } from '@/lib/supabase/ebook-download'
 import { Download } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,20 +17,16 @@ export function EbookCard({ ebook }: EbookCardProps) {
     if (disabled) {
       toast.message('Download unavailable', {
         description:
-          blockedReason ??
-          'This title is not published yet or the PDF is not in Supabase Storage.',
+          userFacingToastDescription(blockedReason) ??
+          'This title is not available for download yet.',
       })
       return
     }
     try {
       await downloadEbookByPath(ebook.pdfStoragePath, ebook.title)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Download failed'
       toast.error('Download failed', {
-        description:
-          message.includes('not found') || message.includes('Object')
-            ? `${message} — Confirm the PDF exists in Storage at private-documents/${ebook.pdfStoragePath} and migration 013 is applied.`
-            : message,
+        description: userFacingError(err, 'Please try again later or contact TMSI–LAPS support.'),
       })
     }
   }

@@ -10,6 +10,7 @@ import { formatPhp } from '@/lib/utils'
 import { Send, X } from 'lucide-react'
 import { useId, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 type Props = {
@@ -82,7 +83,7 @@ export function MembershipApplyModal({ open, onClose, onSubmitted }: Props) {
       onSubmitted?.()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Submission failed')
+      toast.error(userFacingError(err, 'Submission failed. Please try again.'))
     } finally {
       setBusy(false)
     }

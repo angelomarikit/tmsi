@@ -104,8 +104,7 @@ export function EbooksPage() {
           <div className="rounded-xl border border-dashed border-gold/40 bg-white px-6 py-14 text-center">
             <p className="font-display text-lg font-semibold text-forest">No eBooks published yet</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-ink/75">
-              Staff: open Admin → eBooks, upload each PDF, then set Status to Live. The public catalog
-              only lists titles stored in Supabase.
+              New titles will appear here when they are published by TMSI–LAPS.
             </p>
           </div>
         ) : (

@@ -12,8 +12,7 @@ export function getEbookDownloadUi(ebook: EbookRecord): EbookDownloadUi {
     return {
       disabled: true,
       buttonLabel: 'Download unavailable (rights review)',
-      blockedReason:
-        'This title is still in review. In Admin → eBooks, upload the PDF, then set status to Live.',
+      blockedReason: 'This title is still in review. Please check back soon.',
     }
   }
 
@@ -22,7 +21,7 @@ export function getEbookDownloadUi(ebook: EbookRecord): EbookDownloadUi {
     return {
       disabled: true,
       buttonLabel: 'Download unavailable (PDF pending)',
-      blockedReason: 'No PDF path on record. Upload the file in Admin → eBooks → PDF.',
+      blockedReason: 'This download is not ready yet. Please check back soon.',
     }
   }
 
@@ -31,7 +30,7 @@ export function getEbookDownloadUi(ebook: EbookRecord): EbookDownloadUi {
       disabled: true,
       buttonLabel: 'Download unavailable (upload PDF)',
       blockedReason:
-        'Status is Live but the PDF is not in Supabase Storage yet. In Admin → eBooks, use PDF upload (stores under ebooks/…), then keep status Live.',
+        'This title is being prepared. Please check back soon or contact TMSI–LAPS for assistance.',
     }
   }
 

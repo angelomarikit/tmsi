@@ -78,9 +78,9 @@ export function AdminDashboardPage() {
             <p className="mt-2 text-[10px] uppercase tracking-wider text-gold-light/90">
               {apiReady
                 ? programsFromDb
-                  ? 'Connected to Supabase CMS'
-                  : 'Run npm run sync:supabase to load programs'
-                : 'Add VITE_SUPABASE_* to .env.local'}
+                  ? 'Online CMS connected'
+                  : 'Course catalog not loaded yet'
+                : 'Site backend not configured'}
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function AdminDashboardPage() {
         <article className="rounded-xl border border-gold/30 bg-white p-5 shadow-sm">
           <h2 className="font-display text-lg font-semibold text-forest">Enrollment Trend</h2>
           <p className="mt-6 text-center text-sm text-ink/55">
-            Charts populate after enrollment history is recorded in Supabase.
+            Charts appear as enrollment activity is recorded.
           </p>
         </article>
 

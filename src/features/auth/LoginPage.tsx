@@ -1,6 +1,7 @@
 import { useStaff } from '@/contexts/StaffContext'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { SERVICE_UNAVAILABLE_MESSAGE, userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 export function LoginPage() {
@@ -33,7 +34,7 @@ export function LoginPage() {
       toast.success('Signed in')
       navigate(resolveDestination(isStaff))
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Sign-in failed')
+      toast.error(userFacingError(err, 'Sign-in failed. Check your email and password.'))
     } finally {
       setBusy(false)
     }
@@ -48,7 +49,7 @@ export function LoginPage() {
       </p>
       {!configured ? (
         <p className="mt-4 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-950">
-          Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to web/.env.local
+          {SERVICE_UNAVAILABLE_MESSAGE}
         </p>
       ) : (
         <form className="mt-6 space-y-3" onSubmit={onSubmit}>

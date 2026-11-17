@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/lib/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 export function StudentProfilePage() {
@@ -48,7 +49,7 @@ export function StudentProfilePage() {
       toast.success('Profile updated')
       void queryClient.invalidateQueries({ queryKey: ['student', 'profile', session.user.id] })
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not save profile')
+      toast.error(userFacingError(err, 'Could not save profile. Please try again.'))
     } finally {
       setBusy(false)
     }

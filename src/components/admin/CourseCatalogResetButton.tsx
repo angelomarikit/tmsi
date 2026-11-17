@@ -17,7 +17,7 @@ export function CourseCatalogResetButton({ onReset }: Props) {
   async function onClick() {
     if (
       !window.confirm(
-        'This deletes ALL courses, LEAP PDF records, and enrollment applications in Supabase.\n\nType OK in the next dialog only if you want a completely fresh catalog.',
+        'This permanently deletes ALL courses, LEAP PDF records, and enrollment applications.\n\nType OK in the next dialog only if you want a completely fresh catalog.',
       )
     ) {
       return
