@@ -1,4 +1,5 @@
 import { institutionalDisclosure } from '@/data/programs'
+import { Link } from 'react-router-dom'
 
 type FooterProps = {
   tagline?: string
@@ -12,6 +13,20 @@ export function InstitutionalFooter({
       <div className="mx-auto max-w-[1440px] px-4 py-6 text-center sm:px-6">
         <p className="font-display text-sm tracking-wide text-gold-light">
           TMSI–LAPS | {tagline}
+        </p>
+        <p className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+          <Link to="/faq" className="text-gold-light underline hover:text-white">
+            FAQ
+          </Link>
+          <Link to="/contact" className="text-gold-light underline hover:text-white">
+            Contact
+          </Link>
+          <Link to="/privacy" className="text-gold-light underline hover:text-white">
+            Privacy
+          </Link>
+          <Link to="/terms" className="text-gold-light underline hover:text-white">
+            Terms
+          </Link>
         </p>
         <p className="mx-auto mt-4 max-w-3xl text-xs leading-relaxed text-white/80">
           {institutionalDisclosure}

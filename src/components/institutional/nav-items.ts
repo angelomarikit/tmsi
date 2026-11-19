@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   BookOpen,
   GraduationCap,
+  HelpCircle,
   Home,
   Info,
   Mail,
@@ -19,6 +20,7 @@ export type NavItem = {
 export const mainNavItems: NavItem[] = [
   { label: 'Home', to: '/', icon: Home, match: (p) => p === '/' },
   { label: 'About TMSI–LAPS', to: '/about', icon: Info },
+  { label: 'FAQ', to: '/faq', icon: HelpCircle },
   {
     label: 'LEAP Courses',
     to: '/courses',

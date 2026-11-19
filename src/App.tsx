@@ -7,12 +7,8 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { StudentRoutes } from '@/features/student/StudentRoutes'
 import { ContactPage } from '@/features/public/ContactPage'
-import {
-  AboutPage,
-  FaqPage,
-  PrivacyPage,
-  TermsPage,
-} from '@/features/public/StaticContentPage'
+import { FaqPage } from '@/features/public/FaqPage'
+import { AboutPage, PrivacyPage, TermsPage } from '@/features/public/StaticContentPage'
 import { CourseDetailPage } from '@/features/public/CourseDetailPage'
 import { CoursesPage } from '@/features/public/CoursesPage'
 import { EbooksPage } from '@/features/public/EbooksPage'

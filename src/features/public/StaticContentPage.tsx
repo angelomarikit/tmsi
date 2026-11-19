@@ -36,17 +36,6 @@ export function AboutPage() {
   )
 }
 
-export function FaqPage() {
-  return (
-    <StaticContentPage title="Frequently Asked Questions">
-      <p>
-        Thirty FAQ entries from client DOCX are queued for import (`scripts/import` pending).
-        Content will not be invented ahead of source parse.
-      </p>
-    </StaticContentPage>
-  )
-}
-
 export function PrivacyPage() {
   return (
     <StaticContentPage title="Privacy Policy">

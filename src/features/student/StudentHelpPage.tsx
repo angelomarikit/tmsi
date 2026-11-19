@@ -8,6 +8,13 @@ export function StudentHelpPage() {
         Open to all students — you do not need an active enrollment to contact TMSI.
       </p>
 
+      <p className="mt-4 text-sm text-ink/80">
+        <Link to="/faq" className="font-medium text-forest underline">
+          Frequently Asked Questions
+        </Link>{' '}
+        — enrollment, exams, PDF modules, credentials, and payments.
+      </p>
+
       <div className="mt-6 space-y-4 rounded-xl border border-gold/30 bg-white p-5 text-sm text-ink/85 shadow-sm">
         <div>
           <h2 className="font-semibold text-forest">Registrar &amp; enrollment</h2>
