@@ -136,19 +136,38 @@ export async function registerAndSubmitTmvsMembership(payload: MembershipRegiste
 
   const email = payload.email.trim().toLowerCase()
 
-  const { data: sessionData } = await supabase.auth.getSession()
-  let userId = sessionData.session?.user.id
+  const { data: userData } = await supabase.auth.getUser()
+  const signedIn = userData.user
+  const sessionEmail = signedIn?.email?.trim().toLowerCase()
 
-  if (!userId || sessionData.session?.user.email?.toLowerCase() !== email) {
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-      email,
-      password: payload.password,
-      options: { data: { full_name: payload.fullName } },
+  if (signedIn?.id && sessionEmail) {
+    if (sessionEmail !== email) {
+      throw new Error(
+        'You are signed in with a different email. Use the dashboard to apply, or sign out and sign in with the email on this form.',
+      )
+    }
+    return createTmvsMembershipApplication(signedIn.id, sessionEmail, {
+      fullName: payload.fullName,
+      mobile: payload.mobile,
+      dateOfBirth: payload.dateOfBirth,
+      address: payload.address,
+      profession: payload.profession,
+      background: payload.background,
+      paymentReference: payload.paymentReference,
+      paymentDate: payload.paymentDate,
+      receiptFile: payload.receiptFile,
+      email: sessionEmail,
     })
-    if (signUpErr) throw new Error(signUpErr.message)
-    if (!signUpData.user) throw new Error('Could not create account')
-    userId = signUpData.user.id
   }
+
+  const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+    email,
+    password: payload.password,
+    options: { data: { full_name: payload.fullName } },
+  })
+  if (signUpErr) throw new Error(signUpErr.message)
+  if (!signUpData.user?.id) throw new Error('Could not create account')
+  const userId = signUpData.user.id
 
   return createTmvsMembershipApplication(userId, email, {
     fullName: payload.fullName,

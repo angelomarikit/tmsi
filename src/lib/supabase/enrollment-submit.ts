@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase/client'
 import { uploadPrivateDocument } from '@/lib/supabase/cms-upload'
+import { userFacingError } from '@/lib/user-facing-message'
 
 export type EnrollmentSubmitPayload = {
   programId: string
@@ -13,6 +14,8 @@ export type EnrollmentSubmitPayload = {
   paymentDate: string
   declaredAmount: number
   receiptFile: File
+  /** When set, withdraw this pending application before enrolling (wrong course). */
+  withdrawApplicationId?: string
 }
 
 function refCode() {
@@ -20,9 +23,27 @@ function refCode() {
   return `LEAP-${part}`
 }
 
+function friendlyEnrollmentError(err: unknown): Error {
+  const raw = err instanceof Error ? err.message : String(err)
+  if (/row-level security|RLS|violates row-level security/i.test(raw)) {
+    return new Error(
+      'We could not save your enrollment. Sign out, sign in again, and retry. If it continues, contact the registrar.',
+    )
+  }
+  if (/unique|duplicate|payment_submissions_reference/i.test(raw)) {
+    return new Error(
+      'That payment reference is already on file. Use a new reference number or contact the registrar.',
+    )
+  }
+  if (/already have an active application/i.test(raw)) {
+    return new Error(raw)
+  }
+  return new Error(userFacingError(err, 'Enrollment submission failed. Please try again.'))
+}
+
 export async function submitLeapEnrollment(payload: EnrollmentSubmitPayload) {
   const supabase = getSupabaseClient()
-  if (!supabase) throw new Error('Supabase is not configured')
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
 
   const { data: userData, error: userErr } = await supabase.auth.getUser()
   if (userErr || !userData.user) {
@@ -30,77 +51,110 @@ export async function submitLeapEnrollment(payload: EnrollmentSubmitPayload) {
   }
   const userId = userData.user.id
 
-  const { data: existing } = await supabase
-    .from('enrollment_applications')
-    .select('id, status')
-    .eq('applicant_id', userId)
-    .eq('program_id', payload.programId)
-    .in('status', ['submitted', 'under_review', 'correction_requested', 'approved'])
-    .maybeSingle()
+  if (payload.withdrawApplicationId) {
+    const { error: withdrawErr } = await supabase.rpc('student_withdraw_enrollment', {
+      p_application_id: payload.withdrawApplicationId,
+    })
+    if (withdrawErr) {
+      throw friendlyEnrollmentError(withdrawErr)
+    }
+  } else {
+    await supabase.rpc('student_withdraw_other_pending_enrollments', {
+      p_program_id: payload.programId,
+    })
+  }
 
-  if (existing) {
+  const payloadJson = {
+    fullName: payload.fullName,
+    email: payload.email,
+    mobile: payload.mobile,
+    dateOfBirth: payload.dateOfBirth,
+    address: payload.address,
+    civilStatus: payload.civilStatus,
+  }
+
+  let applicationId: string
+  let referenceCode: string
+
+  const { data: openRows, error: openErr } = await supabase.rpc('student_find_open_enrollment', {
+    p_program_id: payload.programId,
+  })
+  if (openErr) {
+    throw friendlyEnrollmentError(openErr)
+  }
+
+  const open = (openRows ?? [])[0] as
+    | { application_id: string; reference_code: string; has_payment: boolean }
+    | undefined
+
+  if (open?.has_payment) {
     throw new Error(
-      'You already have an active application for this course. Check My Enrollments on your dashboard.',
+      'You already have an application with payment on file for this course. Open My Courses on your dashboard.',
     )
   }
 
-  const reference = refCode()
-  const { data: application, error: appErr } = await supabase
-    .from('enrollment_applications')
-    .insert({
-      applicant_id: userId,
-      program_id: payload.programId,
-      status: 'submitted',
-      reference_code: reference,
-      payload: {
-        fullName: payload.fullName,
-        email: payload.email,
-        mobile: payload.mobile,
-        dateOfBirth: payload.dateOfBirth,
-        address: payload.address,
-        civilStatus: payload.civilStatus,
-      },
-      submitted_at: new Date().toISOString(),
+  if (open?.application_id) {
+    applicationId = open.application_id
+    referenceCode = open.reference_code
+    const { error: updErr } = await supabase.rpc('student_refresh_open_enrollment', {
+      p_application_id: applicationId,
+      p_payload: payloadJson,
     })
-    .select('id, reference_code')
-    .single()
-
-  if (appErr || !application) {
-    throw new Error(appErr?.message ?? 'Could not create enrollment application')
+    if (updErr) throw friendlyEnrollmentError(updErr)
+  } else {
+    const reference = refCode()
+    const { data: created, error: createErr } = await supabase.rpc(
+      'student_create_enrollment_application',
+      {
+        p_program_id: payload.programId,
+        p_payload: payloadJson,
+        p_reference_code: reference,
+      },
+    )
+    if (createErr || !created?.length) {
+      throw friendlyEnrollmentError(createErr ?? new Error('Could not create enrollment'))
+    }
+    const row = created[0] as { application_id: string; reference_code: string }
+    applicationId = row.application_id
+    referenceCode = row.reference_code
   }
 
   const ext = payload.receiptFile.name.split('.').pop() ?? 'jpg'
-  const receiptPath = `enrollment-receipts/${userId}/${application.id}/receipt.${ext}`
-  await uploadPrivateDocument(receiptPath, payload.receiptFile)
+  const receiptPath = `enrollment-receipts/${userId}/${applicationId}/receipt.${ext}`
+  try {
+    await uploadPrivateDocument(receiptPath, payload.receiptFile)
+  } catch (err) {
+    throw friendlyEnrollmentError(err)
+  }
 
-  const { error: payErr } = await supabase.from('payment_submissions').insert({
-    application_type: 'leap_enrollment',
-    application_id: application.id,
-    declared_amount: payload.declaredAmount,
-    reference_number: payload.paymentReference,
-    receipt_path: receiptPath,
-    payment_date: payload.paymentDate || null,
-    status: 'submitted',
+  const { error: payErr } = await supabase.rpc('student_attach_enrollment_payment', {
+    p_application_id: applicationId,
+    p_reference_number: payload.paymentReference.trim(),
+    p_receipt_path: receiptPath,
+    p_payment_date: payload.paymentDate || null,
+    p_declared_amount: payload.declaredAmount,
   })
-
-  if (payErr) throw new Error(payErr.message)
+  if (payErr) throw friendlyEnrollmentError(payErr)
 
   await supabase
     .from('profiles')
     .update({ full_name: payload.fullName, mobile: payload.mobile })
     .eq('id', userId)
 
-  await supabase.from('in_app_notifications').insert({
+  const { error: notifyErr } = await supabase.from('in_app_notifications').insert({
     user_id: userId,
     kind: 'enrollment_submitted',
     title: 'Enrollment submitted',
     body: 'Your application and payment details were received. Course materials stay locked until admin approval.',
     link_path: '/dashboard',
   })
+  if (notifyErr) {
+    /* non-blocking */
+  }
 
   return {
-    referenceCode: application.reference_code ?? reference,
-    applicationId: application.id,
+    referenceCode,
+    applicationId,
   }
 }
 
@@ -114,7 +168,7 @@ export type EnrollmentPaymentProofPayload = {
 
 export async function uploadLeapEnrollmentPaymentProof(payload: EnrollmentPaymentProofPayload) {
   const supabase = getSupabaseClient()
-  if (!supabase) throw new Error('Supabase is not configured')
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
 
   const { data: userData, error: userErr } = await supabase.auth.getUser()
   if (userErr || !userData.user) throw new Error('Sign in to upload your payment receipt')
@@ -132,45 +186,45 @@ export async function uploadLeapEnrollmentPaymentProof(payload: EnrollmentPaymen
     throw new Error('This enrollment can no longer accept payment uploads')
   }
 
-  const { data: existingPay } = await supabase
-    .from('payment_submissions')
-    .select('id, receipt_path')
-    .eq('application_id', app.id)
-    .eq('application_type', 'leap_enrollment')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (existingPay?.receipt_path) {
-    throw new Error('Payment proof is already on file for this enrollment')
-  }
-
   const ext = payload.receiptFile.name.split('.').pop() ?? 'jpg'
   const receiptPath = `enrollment-receipts/${userId}/${app.id}/receipt.${ext}`
   await uploadPrivateDocument(receiptPath, payload.receiptFile)
 
-  if (existingPay?.id) {
-    const { error: upErr } = await supabase
-      .from('payment_submissions')
-      .update({
-        reference_number: payload.paymentReference.trim(),
-        receipt_path: receiptPath,
-        payment_date: payload.paymentDate || null,
-        declared_amount: payload.declaredAmount,
-        status: 'submitted',
-      })
-      .eq('id', existingPay.id)
-    if (upErr) throw new Error(upErr.message)
-  } else {
-    const { error: payErr } = await supabase.from('payment_submissions').insert({
-      application_type: 'leap_enrollment',
-      application_id: app.id,
-      declared_amount: payload.declaredAmount,
-      reference_number: payload.paymentReference.trim(),
-      receipt_path: receiptPath,
-      payment_date: payload.paymentDate || null,
-      status: 'submitted',
-    })
-    if (payErr) throw new Error(payErr.message)
-  }
+  const { error: payErr } = await supabase.rpc('student_attach_enrollment_payment', {
+    p_application_id: app.id,
+    p_reference_number: payload.paymentReference.trim(),
+    p_receipt_path: receiptPath,
+    p_payment_date: payload.paymentDate || null,
+    p_declared_amount: payload.declaredAmount,
+  })
+  if (payErr) throw friendlyEnrollmentError(payErr)
+}
+
+/** Pending LEAP applications for this user (for wrong-course withdraw in UI). */
+export async function fetchMyPendingEnrollments() {
+  const supabase = getSupabaseClient()
+  if (!supabase) return []
+
+  const { data: userData } = await supabase.auth.getUser()
+  const uid = userData.user?.id
+  if (!uid) return []
+
+  const { data, error } = await supabase
+    .from('enrollment_applications')
+    .select('id, program_id, reference_code, status, programs(title, slug)')
+    .eq('applicant_id', uid)
+    .in('status', ['submitted', 'under_review', 'correction_requested', 'draft'])
+    .order('created_at', { ascending: false })
+
+  if (error) return []
+  return data ?? []
+}
+
+export async function withdrawEnrollmentApplication(applicationId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
+  const { error } = await supabase.rpc('student_withdraw_enrollment', {
+    p_application_id: applicationId,
+  })
+  if (error) throw friendlyEnrollmentError(error)
 }

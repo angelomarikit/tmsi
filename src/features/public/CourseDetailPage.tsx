@@ -61,17 +61,31 @@ export function CourseDetailPage() {
             Course modules are published by TMSI–LAPS after your enrollment is approved. Files are not
             listed on this public page.
           </p>
-          <Link
-            to={
-              session
-                ? `/dashboard?purchase=${encodeURIComponent(program.slug)}`
-                : `/register?next=${encodeURIComponent(`/dashboard?purchase=${program.slug}`)}`
-            }
-            className="btn-gloss-green mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-          >
-            Enroll Now
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+          <div className="mt-6 flex flex-col items-start gap-2">
+            <Link
+              to={
+                session
+                  ? `/dashboard?purchase=${encodeURIComponent(program.slug)}`
+                  : `/login?next=${encodeURIComponent(`/dashboard?purchase=${program.slug}`)}`
+              }
+              className="btn-gloss-green inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+            >
+              {session ? 'Enroll now' : 'Sign in to enroll'}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+            {!session ? (
+              <p className="text-xs text-ink/70">
+                New learner?{' '}
+                <Link
+                  to={`/register?next=${encodeURIComponent(`/dashboard?purchase=${program.slug}`)}`}
+                  className="font-medium text-forest underline"
+                >
+                  Create one account
+                </Link>{' '}
+                (only once — then always sign in).
+              </p>
+            ) : null}
+          </div>
         </div>
       </article>
     </>

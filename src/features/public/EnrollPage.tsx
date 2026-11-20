@@ -120,14 +120,14 @@ export function EnrollPage() {
         <div className="mx-auto max-w-3xl px-4 py-6 text-center text-sm">
           <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-4 py-3 text-amber-950">
             Please{' '}
-            <Link to="/register?next=/enroll" className="font-semibold text-forest underline">
-              create an account
-            </Link>{' '}
-            or{' '}
             <Link to="/login?next=/enroll" className="font-semibold text-forest underline">
               sign in
             </Link>{' '}
-            before submitting enrollment (required for My Learning access).
+            to enroll (use your existing account). New?{' '}
+            <Link to="/register?next=/enroll" className="font-semibold text-forest underline">
+              create an account once
+            </Link>
+            .
           </p>
         </div>
       ) : null}

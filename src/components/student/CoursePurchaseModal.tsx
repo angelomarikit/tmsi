@@ -2,7 +2,7 @@ import { LeapEnrollmentApplicantFields } from '@/components/forms/LeapEnrollment
 import { PaymentProofSection } from '@/components/forms/PaymentProofSection'
 import { useLeapPrograms } from '@/contexts/ContentContext'
 import { useStaff } from '@/contexts/StaffContext'
-import { submitLeapEnrollment } from '@/lib/supabase/enrollment-submit'
+import { fetchMyPendingEnrollments, submitLeapEnrollment } from '@/lib/supabase/enrollment-submit'
 import { fetchProgramBySlug } from '@/lib/supabase/program-materials'
 import { formatPhp } from '@/lib/utils'
 import { Send, ShieldCheck, X } from 'lucide-react'
@@ -24,6 +24,29 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
   const { session } = useStaff()
   const [slug, setSlug] = useState(programs[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
+  const [pendingOthers, setPendingOthers] = useState<
+    { id: string; programs: { title: string; slug: string } | null }[]
+  >([])
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void fetchMyPendingEnrollments().then((rows) => {
+      if (cancelled) return
+      const mapped = rows.map((r) => {
+        const prog = r.programs
+        const one =
+          prog && typeof prog === 'object' && !Array.isArray(prog)
+            ? (prog as { title: string; slug: string })
+            : null
+        return { id: r.id as string, programs: one }
+      })
+      setPendingOthers(mapped)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -35,6 +58,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
   }, [open, initialSlug, programs])
 
   const selected = programs.find((p) => p.slug === slug) ?? programs[0]
+  const otherPending = pendingOthers.filter((p) => p.programs?.slug && p.programs.slug !== slug)
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -116,6 +140,14 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
           </p>
         ) : (
         <div className="grid gap-5 p-4 sm:gap-6 sm:p-5 lg:grid-cols-[1.1fr_0.9fr]">
+          {otherPending.length > 0 ? (
+            <p className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950 lg:col-span-2">
+              You still have a pending application for{' '}
+              <strong>{otherPending.map((p) => p.programs?.title ?? 'another course').join(', ')}</strong>.
+              Submitting for <strong>{selected?.subtitle ?? 'this course'}</strong> will cancel that
+              pending application so you can enroll in the correct program.
+            </p>
+          ) : null}
           <form id={formId} className="space-y-5" onSubmit={onSubmit} encType="multipart/form-data">
             <label className="block text-xs font-medium text-ink">
               Course

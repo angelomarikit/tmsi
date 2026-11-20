@@ -1,11 +1,11 @@
 import { useStaff } from '@/contexts/StaffContext'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { SERVICE_UNAVAILABLE_MESSAGE, userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
 export function LoginPage() {
-  const { signIn, configured } = useStaff()
+  const { signIn, configured, session, loading: authLoading, isStaff } = useStaff()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -19,11 +19,15 @@ export function LoginPage() {
     return path
   }
 
-  function resolveDestination(isStaff: boolean): string {
-    if (isStaff) return '/admin'
+  function resolveDestination(staffAccount: boolean): string {
+    if (staffAccount) return '/admin'
     const learnerNext = safeLearnerNext(next)
     if (learnerNext) return learnerNext
     return '/dashboard'
+  }
+
+  if (!authLoading && session) {
+    return <Navigate to={resolveDestination(isStaff)} replace />
   }
 
   async function onSubmit(e: FormEvent) {
@@ -84,7 +88,10 @@ export function LoginPage() {
       )}
       <p className="mt-6 text-sm">
         New learner?{' '}
-        <Link to="/register" className="text-forest underline">
+        <Link
+          to={next ? `/register?next=${encodeURIComponent(next)}` : '/register'}
+          className="text-forest underline"
+        >
           Create account
         </Link>
       </p>

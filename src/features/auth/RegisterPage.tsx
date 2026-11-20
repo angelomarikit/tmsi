@@ -1,12 +1,18 @@
 import { DataPrivacyConsentModal } from '@/components/auth/DataPrivacyConsentModal'
 import { useStaff } from '@/contexts/StaffContext'
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { SERVICE_UNAVAILABLE_MESSAGE, userFacingError } from '@/lib/user-facing-message'
 import { toast } from 'sonner'
 
+function safeNext(path: string): string {
+  if (!path.startsWith('/') || path.startsWith('//')) return '/dashboard'
+  if (path.startsWith('/admin')) return '/dashboard'
+  return path
+}
+
 export function RegisterPage() {
-  const { signUp, configured } = useStaff()
+  const { signUp, configured, session, loading: authLoading } = useStaff()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -14,7 +20,11 @@ export function RegisterPage() {
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const next = params.get('next') ?? '/dashboard'
+  const next = safeNext(params.get('next') ?? '/dashboard')
+
+  if (!authLoading && session) {
+    return <Navigate to={next} replace />
+  }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()

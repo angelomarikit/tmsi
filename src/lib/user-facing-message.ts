@@ -22,6 +22,14 @@ export function userFacingError(
     return SERVICE_UNAVAILABLE
   }
 
+  if (
+    /already registered|already been registered|user already exists|email address is already|duplicate key.*profiles_email/i.test(
+      msg,
+    )
+  ) {
+    return 'An account with this email already exists. Sign in with your existing password — you do not need to create another account.'
+  }
+
   if (TECHNICAL.test(msg)) {
     let cleaned = msg
       .replace(/^\[Storage\]\s*/i, '')

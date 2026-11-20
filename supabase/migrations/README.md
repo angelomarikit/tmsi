@@ -47,6 +47,8 @@
 41. `041_admin_upload_clarify.sql` (`is_admin` = super_admin upload; friendlier RPC errors)
 42. `041_grant_super_admin_example.sql` (template SQL by email — edit email, never paste placeholder UUIDs)
 43. `042_feature_published_programs_carousel.sql` (homepage carousel: flag published courses as featured)
+44. `043_student_enrollment_submit.sql` (**required for re-enroll / wrong-course fix** — student RPCs for application, payment receipt, withdraw)
+45. `044_staff_delete_student_account.sql` (registrar deletes mistaken duplicate student logins — run `scripts/delete_student_dennis_mindanao.sql` to locate Dennis)
 
 ## LEAP course materials (checklist)
 
