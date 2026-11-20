@@ -49,6 +49,7 @@
 43. `042_feature_published_programs_carousel.sql` (homepage carousel: flag published courses as featured)
 44. `043_student_enrollment_submit.sql` (**required for re-enroll / wrong-course fix** — student RPCs for application, payment receipt, withdraw)
 45. `044_staff_delete_student_account.sql` (registrar deletes mistaken duplicate student logins — run `scripts/delete_student_dennis_mindanao.sql` to locate Dennis)
+46. `045_admin_students_all_learners.sql` (**Admin → Students** lists all learners; auto student role on sign-up + backfill)
 
 ## LEAP course materials (checklist)
 

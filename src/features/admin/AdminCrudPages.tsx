@@ -26,33 +26,105 @@ import {
   fetchAdminEbooks,
   fetchAdminEnrollments,
   fetchAdminPayments,
+  deleteAdminStudentAccount,
   fetchAdminStudentProfiles,
   fetchAdminProgramsTable,
   fetchInstitutionSettings,
 } from '@/lib/supabase/admin-queries'
+import { userFacingError } from '@/lib/user-facing-message'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { toast } from 'sonner'
 
 function useAdminRows<T>(key: string, queryFn: () => Promise<T[]>) {
   return useQuery({ queryKey: ['admin', key], queryFn, staleTime: 30_000 })
 }
 
+function enrollmentStatusLabel(status: string | null | undefined) {
+  if (!status) return '—'
+  return status.replace(/_/g, ' ')
+}
+
 export function AdminStudentsPage() {
+  const queryClient = useQueryClient()
   const { data: rows = [], isLoading } = useAdminRows('students', fetchAdminStudentProfiles)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function removeStudent(row: (typeof rows)[number]) {
+    const label = row.full_name?.trim() || row.email
+    const ok = window.confirm(
+      `Remove learner account for ${label}?\n\nThis deletes their login, enrollment applications, and payment records on file. They can register again with the same email. This cannot be undone.`,
+    )
+    if (!ok) return
+
+    setDeletingId(row.id)
+    try {
+      await deleteAdminStudentAccount(row.id)
+      toast.success('Student account removed')
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'students'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+    } catch (err) {
+      toast.error(userFacingError(err, 'Could not remove this student account.'))
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <AdminDataTable
       title="Students"
-      description="Learners with the student role only. Staff and admin accounts (e.g. admin@tmsi.com) are not listed here."
+      description="All learner accounts (register + enroll). Staff logins are excluded. Student numbers appear after enrollment approval."
+      actions={
+        <Link
+          to="/admin/enrollment-approvals"
+          className="rounded-full border border-gold/40 px-4 py-2 text-xs font-semibold text-forest no-underline hover:bg-cream"
+        >
+          Enrollment approvals
+        </Link>
+      }
       columns={[
-        { key: 'email', header: 'Email', render: (r) => r.email },
+        {
+          key: 'student_number',
+          header: 'Student #',
+          render: (r) => r.student_number ?? '—',
+        },
         { key: 'name', header: 'Name', render: (r) => r.full_name ?? '—' },
+        { key: 'email', header: 'Email', render: (r) => r.email },
+        {
+          key: 'enrollments',
+          header: 'Applications',
+          render: (r) => String(r.enrollment_count ?? 0),
+        },
+        {
+          key: 'status',
+          header: 'Latest status',
+          render: (r) => enrollmentStatusLabel(r.latest_enrollment_status),
+        },
         { key: 'joined', header: 'Joined', render: (r) => new Date(r.created_at).toLocaleDateString() },
+        {
+          key: 'delete',
+          header: '',
+          className: 'w-28 text-right',
+          render: (r) => (
+            <button
+              type="button"
+              title={`Delete ${r.full_name ?? r.email}`}
+              disabled={deletingId === r.id}
+              className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
+              onClick={() => void removeStudent(r)}
+            >
+              <Trash2 className="h-3.5 w-3.5" aria-hidden />
+              {deletingId === r.id ? '…' : 'Delete'}
+            </button>
+          ),
+        },
       ]}
       rows={rows}
       getRowKey={(r) => r.id}
       emptyMessage={
-        isLoading ? 'Loading…' : 'No student profiles yet. Complete auth + enrollment workflow.'
+        isLoading ? 'Loading…' : 'No learner accounts yet. Students appear here when they register on the site.'
       }
     />
   )

@@ -37,7 +37,11 @@ export type DbProfileRow = {
   id: string
   email: string
   full_name: string | null
+  student_number?: string | null
   created_at: string
+  has_student_role?: boolean
+  enrollment_count?: number
+  latest_enrollment_status?: string | null
 }
 
 export async function fetchAdminProgramsTable() {
@@ -101,13 +105,23 @@ export async function fetchAdminPayments() {
   return (data ?? []) as DbPaymentRow[]
 }
 
-/** LEAP learners with the student role — excludes staff-only accounts (e.g. admin@). */
+/** All learner accounts for Admin → Students (RPC). */
 export async function fetchAdminStudentProfiles() {
   const supabase = getSupabaseClient()
   if (!supabase) return []
   const { data, error } = await supabase.rpc('admin_list_students')
-  if (error) return []
+  if (error) throw new Error(error.message)
   return (data ?? []) as DbProfileRow[]
+}
+
+/** Removes a learner login, enrollments, and related payment rows (staff only). */
+export async function deleteAdminStudentAccount(userId: string) {
+  const supabase = getSupabaseClient()
+  if (!supabase) throw new Error('SERVICE_UNAVAILABLE')
+  const { error } = await supabase.rpc('staff_delete_student_account', {
+    p_user_id: userId,
+  })
+  if (error) throw new Error(error.message)
 }
 
 export async function fetchInstitutionSettings() {
