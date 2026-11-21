@@ -3,7 +3,7 @@ import { ProgramCoverFrame } from '@/components/institutional/ProgramCoverFrame'
 import { useLeapPrograms, useMediaOverrides } from '@/contexts/ContentContext'
 import { useStaff } from '@/contexts/StaffContext'
 import { resolvePublicImageUrl, visualAssets } from '@/data/visual-assets'
-import { formatPhp } from '@/lib/utils'
+import { formatPhp, programCatalogLabel } from '@/lib/utils'
 import { ArrowRight } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -52,7 +52,9 @@ export function CourseDetailPage() {
       <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="rounded-2xl border border-gold/35 bg-white p-6 shadow-lg sm:p-8">
           <p className="text-sm font-semibold text-gold">{program.code}</p>
-          <h1 className="font-display text-3xl font-semibold text-forest">{program.subtitle}</h1>
+          <h1 className="font-display text-3xl font-semibold text-forest">
+            {programCatalogLabel(program)}
+          </h1>
           <p className="mt-4 text-sm leading-relaxed text-ink/85">{program.description}</p>
           <p className="mt-6 text-lg font-semibold text-ink">
             Program fee: {formatPhp(program.feePhp)}

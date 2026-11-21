@@ -16,14 +16,21 @@ export async function fetchPublishedPrograms() {
   const { data, error } = await supabase
     .from('programs')
     .select(
-      'id, code, slug, title, subtitle, description, fee_php, cover_asset_key, cover_path, carousel_cover_path, featured_in_carousel, footer_strip, sort_order, active, publication_status',
+      'id, legacy_id, code, slug, title, subtitle, description, fee_php, cover_asset_key, cover_path, carousel_cover_path, featured_in_carousel, footer_strip, sort_order, active, publication_status',
     )
     .eq('publication_status', 'published')
     .eq('active', true)
     .order('sort_order', { ascending: true })
 
   if (error) return null
-  return ((data ?? []) as DbProgramRow[]).map(mapDbProgram)
+  const rows = (data ?? []) as DbProgramRow[]
+  const adminCodes = new Set(
+    rows.filter((r) => !r.legacy_id).map((r) => r.code.trim().toUpperCase()),
+  )
+  const visible = rows.filter(
+    (r) => !r.legacy_id || !adminCodes.has(r.code.trim().toUpperCase()),
+  )
+  return visible.map(mapDbProgram)
 }
 
 export async function fetchMediaOverrides(): Promise<MediaOverrides | null> {

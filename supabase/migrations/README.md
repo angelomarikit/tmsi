@@ -50,6 +50,7 @@
 44. `043_student_enrollment_submit.sql` (**required for re-enroll / wrong-course fix** — student RPCs for application, payment receipt, withdraw)
 45. `044_staff_delete_student_account.sql` (registrar deletes mistaken duplicate student logins — run `scripts/delete_student_dennis_mindanao.sql` to locate Dennis)
 46. `045_admin_students_all_learners.sql` (**Admin → Students** lists all learners; auto student role on sign-up + backfill)
+47. `046_align_enrollment_course_catalog.sql` (enrollment list uses same titles as admin; archives duplicate legacy courses)
 
 ## LEAP course materials (checklist)
 

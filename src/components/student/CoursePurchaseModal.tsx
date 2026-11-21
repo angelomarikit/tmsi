@@ -4,8 +4,10 @@ import { useLeapPrograms } from '@/contexts/ContentContext'
 import { useStaff } from '@/contexts/StaffContext'
 import { fetchMyPendingEnrollments, submitLeapEnrollment } from '@/lib/supabase/enrollment-submit'
 import { fetchProgramBySlug } from '@/lib/supabase/program-materials'
-import { formatPhp } from '@/lib/utils'
+import { useContent } from '@/contexts/ContentContext'
+import { formatPhp, programCatalogLabel } from '@/lib/utils'
 import { Send, ShieldCheck, X } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { userFacingError } from '@/lib/user-facing-message'
@@ -21,6 +23,8 @@ type Props = {
 export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }: Props) {
   const formId = useId().replace(/:/g, '')
   const programs = useLeapPrograms()
+  const { programsFromDb } = useContent()
+  const queryClient = useQueryClient()
   const { session } = useStaff()
   const [slug, setSlug] = useState(programs[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
@@ -47,6 +51,11 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
       cancelled = true
     }
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    void queryClient.invalidateQueries({ queryKey: ['content', 'programs'] })
+  }, [open, queryClient])
 
   useEffect(() => {
     if (!open) return
@@ -138,13 +147,19 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
             No published courses yet. Close this window and check the catalogue later, or contact the
             registrar.
           </p>
+        ) : !programsFromDb ? (
+          <p className="px-5 pb-6 text-center text-sm text-amber-950">
+            Course list could not be loaded. Refresh the page or confirm Admin → Courses entries are
+            published.
+          </p>
         ) : (
         <div className="grid gap-5 p-4 sm:gap-6 sm:p-5 lg:grid-cols-[1.1fr_0.9fr]">
           {otherPending.length > 0 ? (
             <p className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950 lg:col-span-2">
               You still have a pending application for{' '}
               <strong>{otherPending.map((p) => p.programs?.title ?? 'another course').join(', ')}</strong>.
-              Submitting for <strong>{selected?.subtitle ?? 'this course'}</strong> will cancel that
+              Submitting for{' '}
+              <strong>{selected ? programCatalogLabel(selected) : 'this course'}</strong> will cancel that
               pending application so you can enroll in the correct program.
             </p>
           ) : null}
@@ -159,7 +174,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
               >
                 {programs.map((p) => (
                   <option key={p.id} value={p.slug}>
-                    {p.subtitle} — {formatPhp(p.feePhp)}
+                    {programCatalogLabel(p)} — {formatPhp(p.feePhp)}
                   </option>
                 ))}
               </select>
@@ -182,7 +197,7 @@ export function CoursePurchaseModal({ open, initialSlug, onClose, onSubmitted }:
               <div className="rounded-xl border-2 border-gold bg-gradient-to-br from-gold/30 to-white p-4 text-center">
                 <p className="text-xs font-medium uppercase text-ink/70">Program fee</p>
                 <p className="font-display text-3xl font-semibold text-forest">{formatPhp(selected.feePhp)}</p>
-                <p className="mt-1 text-sm text-ink/80">{selected.subtitle}</p>
+                <p className="mt-1 text-sm text-ink/80">{programCatalogLabel(selected)}</p>
               </div>
             ) : null}
             <PaymentProofSection

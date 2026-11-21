@@ -4,7 +4,7 @@ import { useLeapPrograms } from '@/contexts/ContentContext'
 import { useStaff } from '@/contexts/StaffContext'
 import { submitLeapEnrollment } from '@/lib/supabase/enrollment-submit'
 import { fetchProgramBySlug } from '@/lib/supabase/program-materials'
-import { formatPhp } from '@/lib/utils'
+import { formatPhp, programCatalogLabel } from '@/lib/utils'
 import { GraduationCap, Send, ShieldCheck } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
@@ -177,7 +177,7 @@ export function EnrollPage() {
               >
                 {programs.map((p) => (
                   <option key={p.id} value={p.slug}>
-                    {p.subtitle} — {formatPhp(p.feePhp)}
+                    {programCatalogLabel(p)} — {formatPhp(p.feePhp)}
                   </option>
                 ))}
               </select>
@@ -211,7 +211,7 @@ export function EnrollPage() {
             <p className="font-display text-4xl font-semibold text-forest">
               {formatPhp(selected.feePhp)}
             </p>
-            <p className="mt-1 text-sm text-ink/80">{selected.subtitle}</p>
+            <p className="mt-1 text-sm text-ink/80">{programCatalogLabel(selected)}</p>
           </div>
           ) : null}
           <PaymentProofSection

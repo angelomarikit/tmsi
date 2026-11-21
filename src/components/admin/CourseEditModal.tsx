@@ -113,7 +113,7 @@ export function CourseEditModal({ open, initial, onClose, onSaved }: Props) {
             />
           </label>
           <label className="block text-xs font-medium">
-            Subtitle
+            Subtitle <span className="font-normal text-ink/55">(optional; enrollment uses Title when blank)</span>
             <input
               className="mt-1 w-full rounded-md border border-gold/35 px-3 py-2 text-sm"
               value={subtitle}

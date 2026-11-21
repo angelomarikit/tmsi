@@ -25,14 +25,17 @@ export async function createNewCourse(payload: CreateCoursePayload) {
 
   const code = payload.code.trim().toUpperCase()
   const slug = payload.slug.trim().toLowerCase()
+  const title = payload.title.trim()
+  const subtitleRaw = payload.subtitle.trim()
+  const subtitle = subtitleRaw && subtitleRaw !== '—' ? subtitleRaw : title
 
   const { data, error } = await supabase
     .from('programs')
     .insert({
       code,
       slug,
-      title: payload.title.trim(),
-      subtitle: payload.subtitle.trim(),
+      title,
+      subtitle,
       fee_php: payload.feePhp,
       publication_status: 'published',
       active: true,
@@ -85,11 +88,14 @@ export type CourseEditPayload = {
 export async function updateCourseMeta(programId: string, payload: CourseEditPayload) {
   const supabase = getSupabaseClient()
   if (!supabase) throw new Error('Supabase is not configured')
+  const title = payload.title.trim()
+  const subtitleRaw = payload.subtitle.trim()
+  const subtitle = subtitleRaw && subtitleRaw !== '—' ? subtitleRaw : title
   const { error } = await supabase
     .from('programs')
     .update({
-      title: payload.title,
-      subtitle: payload.subtitle,
+      title,
+      subtitle,
       fee_php: payload.feePhp,
       publication_status: payload.publicationStatus,
     })
